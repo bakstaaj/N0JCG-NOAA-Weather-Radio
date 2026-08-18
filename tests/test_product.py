@@ -42,6 +42,8 @@ class ProductTests(unittest.TestCase):
         self.assertIn('TRIAL PAUSED', ui)
         self.assertIn('formatTrialTime', ui)
         self.assertIn('/assets/N0JCG_Icon_Approved.png', ui)
+        self.assertIn('N0JCG Weather Radio', ui)
+        self.assertNotIn('N0JCG / RECEIVE-ONLY SDR', ui)
 
     def test_audio_profile_matches_validated_noaa_path(self):
         self.assertEqual((NOAA_AUDIO_INPUT_RATE_HZ, NOAA_AUDIO_OUTPUT_RATE_HZ), (240000, 24000))

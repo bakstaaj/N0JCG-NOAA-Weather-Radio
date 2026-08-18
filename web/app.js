@@ -21,7 +21,7 @@ function formatTrialTime(seconds) {
 }
 function render(state) {
   const tuned = state.tuned;
-  $("summary").textContent = state.simulate ? "Simulation mode - no live RF claim" : "Receive-only live mode";
+  $("summary").textContent = state.simulate ? "Simulation mode" : "NOAA channel monitoring";
   $("serial").textContent = state.rtl_serial;
   $("tuned").textContent = tuned ? tuned.number : "Not tuned";
   $("frequency").textContent = tuned ? fmt(tuned.frequency_hz) : "-";
