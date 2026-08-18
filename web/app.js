@@ -5,6 +5,20 @@ let audioContext = null;
 let audioNode = null;
 let audioQueue = [];
 let audioQueueOffset = 0;
+let trialRemainingSeconds = null;
+let trialPaused = false;
+function renderRegistration(registration) {
+  if (!registration) return;
+  trialRemainingSeconds = registration.trial_remaining_seconds ?? null;
+  trialPaused = Boolean(registration.trial_paused);
+  $("registration").textContent = trialPaused ? "TRIAL PAUSED" : registration.registered ? "REGISTERED" : `TRIAL ${formatTrialTime(trialRemainingSeconds)}`;
+  $("installation").textContent = trialPaused ? "RESTART REQUIRED" : registration.installation_id;
+}
+function formatTrialTime(seconds) {
+  if (seconds == null) return "";
+  const value = Math.max(0, Number(seconds));
+  return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, "0")}`;
+}
 function render(state) {
   const tuned = state.tuned;
   $("summary").textContent = state.simulate ? "Simulation mode - no live RF claim" : "Receive-only live mode";
@@ -22,16 +36,9 @@ async function refresh() {
   try {
     const state = await api("/api/status");
     render(state);
+    renderRegistration(state.registration);
     $("status").textContent = "READY";
     $("status").className = "pill ok";
-    try {
-      const reg = await api("/api/registration");
-      $("registration").textContent = reg.mode.toUpperCase();
-      $("installation").textContent = reg.trial_paused ? "Restart required" : reg.installation_id;
-    } catch (error) {
-      $("registration").textContent = "UNAVAILABLE";
-      $("installation").textContent = "Receiver API is still online";
-    }
   } catch (error) {
     $("status").textContent = "OFFLINE";
     $("status").className = "pill warn";
@@ -118,4 +125,11 @@ $("listen").onclick = () => listen().catch((error) => { $("log").textContent = e
 $("stop").onclick = async () => { stopPcmAudio(); const state = await api("/api/stop", {method:"POST", body:"{}"}); render(state); };
 $("saveFilter").onclick = async () => { await api("/api/same/filter", {method:"POST", body:JSON.stringify({counties:$("counties").value.split(",").map(v=>v.trim()).filter(Boolean), events:$("events").value.split(",").map(v=>v.trim()).filter(Boolean)})}); };
 $("testAlert").onclick = async () => { await api("/api/same/test", {method:"POST", body:JSON.stringify({header:"ZCZC-WXR-TOR-006001+0015-2321800-KXYZ-"})}); await refresh(); };
+setInterval(() => {
+  if (trialRemainingSeconds != null && !trialPaused) {
+    trialRemainingSeconds = Math.max(0, trialRemainingSeconds - 1);
+    $("registration").textContent = trialRemainingSeconds ? `TRIAL ${formatTrialTime(trialRemainingSeconds)}` : "TRIAL PAUSED";
+    if (!trialRemainingSeconds) $("installation").textContent = "RESTART REQUIRED";
+  }
+}, 1000);
 refresh(); setInterval(refresh, 5000);
