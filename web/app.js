@@ -14,7 +14,17 @@ function render(state) {
 }
 async function api(path, options) { const response = await fetch(path, {headers:{"Content-Type":"application/json"}, ...options}); const data = await response.json(); $("log").textContent = JSON.stringify(data, null, 2); if (!response.ok) throw new Error(data.error); return data; }
 async function refresh() { try { render(await api("/api/status")); const reg = await api("/api/registration"); $("registration").textContent = reg.mode.toUpperCase(); $("installation").textContent = reg.installation_id; $("status").textContent = "READY"; $("status").className = "pill ok"; } catch (error) { $("status").textContent = "OFFLINE"; $("log").textContent = error.message; } }
+async function listen() {
+  let state = await api("/api/status");
+  if (!state.running) state = await api("/api/scan", {method:"POST", body:"{}"});
+  render(state);
+  if (state.simulate) { $("log").textContent = "Simulation mode has no live audio stream."; return; }
+  $("audio").hidden = false;
+  $("audio").src = "/api/audio.wav?listen=" + Date.now();
+  await $("audio").play();
+}
 $("scan").onclick = async () => { const state = await api("/api/scan", {method:"POST", body:"{}"}); render(state); if (!state.simulate) { $("audio").hidden = false; $("audio").src = "/api/audio.wav?started=" + Date.now(); $("audio").play().catch(() => {}); } };
+$("listen").onclick = () => listen().catch((error) => { $("log").textContent = error.message; });
 $("stop").onclick = async () => { const state = await api("/api/stop", {method:"POST", body:"{}"}); render(state); $("audio").pause(); $("audio").removeAttribute("src"); $("audio").hidden = true; };
 $("saveFilter").onclick = async () => { await api("/api/same/filter", {method:"POST", body:JSON.stringify({counties:$("counties").value.split(",").map(v=>v.trim()).filter(Boolean), events:$("events").value.split(",").map(v=>v.trim()).filter(Boolean)})}); };
 $("testAlert").onclick = async () => { await api("/api/same/test", {method:"POST", body:JSON.stringify({header:"ZCZC-WXR-TOR-006001+0015-2321800-KXYZ-"})}); await refresh(); };

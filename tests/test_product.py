@@ -29,6 +29,9 @@ class ProductTests(unittest.TestCase):
         self.assertEqual(json.loads((root / "config/noaa-weather-radio.example.json").read_text())["rtl_serial"], "00000162")
         ui = (root / "web/app.js").read_text() + (root / "web/index.html").read_text()
         self.assertNotIn("/api/transmit", ui)
+        self.assertIn('id="listen"', ui)
+        self.assertIn('async function listen()', ui)
+        self.assertIn('/api/audio.wav', ui)
 
 
 if __name__ == "__main__":
