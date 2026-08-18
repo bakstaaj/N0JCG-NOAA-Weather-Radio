@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 import threading
 import struct
+import time
 from urllib.parse import urlparse
 
 from . import PRODUCT_NAME, REQUIRED_RTL_SERIAL
@@ -28,6 +29,7 @@ RUNTIME = ROOT / "runtime"
 NOAA_AUDIO_INPUT_RATE_HZ = 240_000
 NOAA_AUDIO_OUTPUT_RATE_HZ = 24_000
 NOAA_AUDIO_GAIN_DB = 49.6
+TRIAL_DURATION_SECONDS = 300
 
 
 class RadioState:
@@ -43,9 +45,43 @@ class RadioState:
         self.same_filter = SameFilter()
         self.config = {"rtl_serial": REQUIRED_RTL_SERIAL, "same": {"enabled": True}}
         self.audio_process: subprocess.Popen[bytes] | None = None
+        self.trial_started_at = time.monotonic()
+        self.trial_paused = False
+        if not registration_status(RUNTIME / "registration.json").get("registered"):
+            self.trial_timer = threading.Timer(TRIAL_DURATION_SECONDS, self._expire_trial)
+            self.trial_timer.daemon = True
+            self.trial_timer.start()
+        else:
+            self.trial_timer = None
+
+    def _expire_trial(self) -> None:
+        with self.lock:
+            if registration_status(RUNTIME / "registration.json").get("registered"):
+                return
+            self.trial_paused = True
+            self.running = False
+            self._stop_audio()
+
+    def registration(self) -> dict[str, object]:
+        status = registration_status(RUNTIME / "registration.json")
+        if status.get("registered"):
+            return status
+        remaining = max(0, int(TRIAL_DURATION_SECONDS - (time.monotonic() - self.trial_started_at)))
+        if self.trial_paused or remaining == 0:
+            self.trial_paused = True
+            status.update({"mode": "trial_paused", "trial_paused": True, "trial_remaining_seconds": 0, "restart_required": True})
+        else:
+            status.update({"trial_paused": False, "trial_remaining_seconds": remaining, "restart_required": False})
+        return status
+
+    def trial_available(self) -> bool:
+        status = self.registration()
+        return bool(status.get("registered") or not status.get("trial_paused"))
 
     def scan(self) -> dict[str, object]:
         with self.lock:
+            if not self.trial_available():
+                return self.snapshot()
             # Release a manual/listen receiver before asking rtl_power to claim
             # the same RTL-SDR.  A failed scan must not leave stale audio alive.
             self._stop_audio()
@@ -132,7 +168,7 @@ class RadioState:
         if tuned and self.tune_frequency_hz:
             tuned["tuned_frequency_hz"] = self.tune_frequency_hz
             tuned["offset_hz"] = self.tune_frequency_hz - self.tuned.frequency_hz
-        return {"ok": True, "product": PRODUCT_NAME, "simulate": self.simulate, "rtl_serial": REQUIRED_RTL_SERIAL, "running": self.running, "audio_profile": {"input_sample_rate_hz": NOAA_AUDIO_INPUT_RATE_HZ, "sample_rate_hz": NOAA_AUDIO_OUTPUT_RATE_HZ, "gain_db": NOAA_AUDIO_GAIN_DB, "offset_tuning": True, "dc_block": True, "deemphasis": True}, "tuned": tuned, "candidates": [{"channel": c.channel.__dict__, "peak_frequency_hz": c.peak_frequency_hz, "noise_floor_dbfs": c.noise_floor_dbfs, "snr_db": c.snr_db} for c in self.candidates], "alerts": self.alerts[-20:]}
+        return {"ok": True, "product": PRODUCT_NAME, "simulate": self.simulate, "rtl_serial": REQUIRED_RTL_SERIAL, "running": self.running, "audio_profile": {"input_sample_rate_hz": NOAA_AUDIO_INPUT_RATE_HZ, "sample_rate_hz": NOAA_AUDIO_OUTPUT_RATE_HZ, "gain_db": NOAA_AUDIO_GAIN_DB, "offset_tuning": True, "dc_block": True, "deemphasis": True}, "registration": self.registration(), "tuned": tuned, "candidates": [{"channel": c.channel.__dict__, "peak_frequency_hz": c.peak_frequency_hz, "noise_floor_dbfs": c.noise_floor_dbfs, "snr_db": c.snr_db} for c in self.candidates], "alerts": self.alerts[-20:]}
 
     def ingest_same(self, text: str) -> bool:
         alert = parse_same_header(text)
@@ -154,7 +190,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = urlparse(self.path).path
         if path == "/api/status": self._json(STATE.snapshot()); return
-        if path == "/api/registration": self._json(registration_status(RUNTIME / "registration.json")); return
+        if path == "/api/registration": self._json(STATE.registration()); return
         if path == "/api/channels": self._json({"channels": [channel.__dict__ for channel in NOAA_CHANNELS]}); return
         if path == "/api/audio.wav":
             process = STATE.audio_process
@@ -191,6 +227,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/scan": self._json(STATE.scan()); return
         if path == "/api/stop": STATE.stop(); self._json(STATE.snapshot()); return
         if path == "/api/tune":
+            if not STATE.trial_available(): self._json({"ok": False, "error": "trial_paused_restart_required"}, 403); return
             STATE.tuned = channel_for_frequency(int(payload.get("frequency_hz", 162_550_000))); STATE.tune_frequency_hz = STATE.tuned.frequency_hz; STATE.running = True
             if not STATE.simulate: STATE._start_audio()
             self._json(STATE.snapshot()); return

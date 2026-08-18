@@ -38,6 +38,7 @@ class ProductTests(unittest.TestCase):
         self.assertIn('AudioContext', ui)
         self.assertIn('createScriptProcessor', ui)
         self.assertIn('No valid NOAA carrier found; audio is not started.', ui)
+        self.assertIn('Restart required', ui)
 
     def test_audio_profile_matches_validated_noaa_path(self):
         self.assertEqual((NOAA_AUDIO_INPUT_RATE_HZ, NOAA_AUDIO_OUTPUT_RATE_HZ), (240000, 24000))

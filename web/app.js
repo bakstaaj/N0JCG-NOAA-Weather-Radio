@@ -27,7 +27,7 @@ async function refresh() {
     try {
       const reg = await api("/api/registration");
       $("registration").textContent = reg.mode.toUpperCase();
-      $("installation").textContent = reg.installation_id;
+      $("installation").textContent = reg.trial_paused ? "Restart required" : reg.installation_id;
     } catch (error) {
       $("registration").textContent = "UNAVAILABLE";
       $("installation").textContent = "Receiver API is still online";
