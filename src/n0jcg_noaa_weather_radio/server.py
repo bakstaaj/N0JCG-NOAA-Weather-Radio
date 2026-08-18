@@ -116,6 +116,18 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/status": self._json(STATE.snapshot()); return
         if path == "/api/registration": self._json(registration_status(RUNTIME / "registration.json")); return
         if path == "/api/channels": self._json({"channels": [channel.__dict__ for channel in NOAA_CHANNELS]}); return
+        if path == "/api/audio.wav":
+            process = STATE.audio_process
+            if not process or not process.stdout:
+                self._json({"ok": False, "error": "audio_not_running"}, 409); return
+            self.send_response(200); self.send_header("Content-Type", "audio/wav"); self.send_header("Transfer-Encoding", "chunked"); self.end_headers()
+            header = b"RIFF" + struct.pack("<I", 0xFFFFFFFF) + b"WAVEfmt " + struct.pack("<IHHIIHH", 16, 1, 1, 48000, 96000, 2, 16) + b"data" + struct.pack("<I", 0xFFFFFFFF)
+            self._chunk(header)
+            while STATE.running and process.poll() is None:
+                chunk = process.stdout.read(4096)
+                if not chunk: break
+                self._chunk(chunk)
+            return
         if path == "/": self._serve("index.html"); return
         if path.startswith("/"):
             self._serve(path[1:]); return
@@ -135,18 +147,6 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/same/filter":
             STATE.same_filter = SameFilter(set(payload.get("counties", [])), set(payload.get("events", [])), str(payload.get("min_priority", "all"))); self._json({"ok": True}); return
         if path == "/api/same/test": self._json({"ok": True, "matched": STATE.ingest_same(str(payload.get("header", ""))) }); return
-        if path == "/api/audio.wav":
-            process = STATE.audio_process
-            if not process or not process.stdout:
-                self._json({"ok": False, "error": "audio_not_running"}, 409); return
-            self.send_response(200); self.send_header("Content-Type", "audio/wav"); self.send_header("Transfer-Encoding", "chunked"); self.end_headers()
-            header = b"RIFF" + struct.pack("<I", 0xFFFFFFFF) + b"WAVEfmt " + struct.pack("<IHHIIHH", 16, 1, 1, 48000, 96000, 2, 16) + b"data" + struct.pack("<I", 0xFFFFFFFF)
-            self._chunk(header)
-            while STATE.running and process.poll() is None:
-                chunk = process.stdout.read(4096)
-                if not chunk: break
-                self._chunk(chunk)
-            return
         if path == "/api/registration/activate":
             token = str(payload.get("license_token", "")).strip()
             if not token: self._json({"ok": False, "error": "license_token_required"}, 400); return
