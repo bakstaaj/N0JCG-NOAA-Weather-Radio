@@ -2,7 +2,9 @@ const $ = (id) => document.getElementById(id);
 const fmt = (hz) => `${(hz / 1e6).toFixed(3)} MHz`;
 let audioAbort = null;
 let audioContext = null;
-let audioNextTime = 0;
+let audioNode = null;
+let audioQueue = [];
+let audioQueueOffset = 0;
 function render(state) {
   const tuned = state.tuned;
   $("summary").textContent = state.simulate ? "Simulation mode - no live RF claim" : "Receive-only live mode";
@@ -29,7 +31,24 @@ async function startPcmAudio() {
   audioAbort = new AbortController();
   audioContext = new (window.AudioContext || window.webkitAudioContext)({sampleRate: 48000});
   await audioContext.resume();
-  audioNextTime = audioContext.currentTime + 0.08;
+  audioQueue = [];
+  audioQueueOffset = 0;
+  audioNode = audioContext.createScriptProcessor(4096, 0, 1);
+  audioNode.onaudioprocess = (event) => {
+    const output = event.outputBuffer.getChannelData(0);
+    output.fill(0);
+    let written = 0;
+    while (written < output.length && audioQueue.length) {
+      const source = audioQueue[0];
+      const available = source.length - audioQueueOffset;
+      const count = Math.min(available, output.length - written);
+      output.set(source.subarray(audioQueueOffset, audioQueueOffset + count), written);
+      written += count;
+      audioQueueOffset += count;
+      if (audioQueueOffset >= source.length) { audioQueue.shift(); audioQueueOffset = 0; }
+    }
+  };
+  audioNode.connect(audioContext.destination);
   $("audioStatus").hidden = false;
   $("audioStatus").textContent = "Live PCM audio connected - use system/browser volume.";
   const response = await fetch("/api/audio.pcm?listen=" + Date.now(), {signal: audioAbort.signal});
@@ -48,16 +67,15 @@ async function startPcmAudio() {
       const view = new DataView(bytes.buffer, bytes.byteOffset, usable);
       for (let i = 0; i < samples.length; i++) samples[i] = view.getInt16(i * 2, true) / 32768;
       carry = bytes.slice(usable);
-      const buffer = audioContext.createBuffer(1, samples.length, 48000);
-      buffer.copyToChannel(samples, 0);
-      const source = audioContext.createBufferSource(); source.buffer = buffer; source.connect(audioContext.destination);
-      const start = Math.max(audioNextTime, audioContext.currentTime + 0.02); source.start(start); audioNextTime = start + buffer.duration;
+      audioQueue.push(samples);
     }
   } catch (error) { if (error.name !== "AbortError") throw error; }
 }
 function stopPcmAudio() {
   if (audioAbort) audioAbort.abort(); audioAbort = null;
+  if (audioNode) { audioNode.disconnect(); audioNode = null; }
   if (audioContext) { audioContext.close(); audioContext = null; }
+  audioQueue = []; audioQueueOffset = 0;
   $("audioStatus").hidden = true;
 }
 $("scan").onclick = async () => { const state = await api("/api/scan", {method:"POST", body:"{}"}); render(state); if (!state.simulate) await startPcmAudio(); };
