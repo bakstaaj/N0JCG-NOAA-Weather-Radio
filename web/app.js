@@ -24,6 +24,12 @@ async function listen() {
   if (!state.running) state = await api("/api/scan", {method:"POST", body:"{}"});
   render(state);
   if (state.simulate) { $("log").textContent = "Simulation mode has no live audio stream."; return; }
+  if (!state.running || !state.tuned) {
+    stopPcmAudio();
+    $("audioStatus").hidden = false;
+    $("audioStatus").textContent = "No valid NOAA carrier found; audio is not started.";
+    return;
+  }
   await startPcmAudio();
 }
 async function startPcmAudio() {
@@ -78,7 +84,17 @@ function stopPcmAudio() {
   audioQueue = []; audioQueueOffset = 0;
   $("audioStatus").hidden = true;
 }
-$("scan").onclick = async () => { const state = await api("/api/scan", {method:"POST", body:"{}"}); render(state); if (!state.simulate) await startPcmAudio(); };
+$("scan").onclick = async () => {
+  const state = await api("/api/scan", {method:"POST", body:"{}"});
+  render(state);
+  if (state.simulate) return;
+  if (state.running && state.tuned) await startPcmAudio();
+  else {
+    stopPcmAudio();
+    $("audioStatus").hidden = false;
+    $("audioStatus").textContent = "No valid NOAA carrier found; audio is not started.";
+  }
+};
 $("listen").onclick = () => listen().catch((error) => { $("log").textContent = error.message; });
 $("stop").onclick = async () => { stopPcmAudio(); const state = await api("/api/stop", {method:"POST", body:"{}"}); render(state); };
 $("saveFilter").onclick = async () => { await api("/api/same/filter", {method:"POST", body:JSON.stringify({counties:$("counties").value.split(",").map(v=>v.trim()).filter(Boolean), events:$("events").value.split(",").map(v=>v.trim()).filter(Boolean)})}); };

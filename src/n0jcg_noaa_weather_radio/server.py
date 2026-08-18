@@ -46,6 +46,9 @@ class RadioState:
 
     def scan(self) -> dict[str, object]:
         with self.lock:
+            # Release a manual/listen receiver before asking rtl_power to claim
+            # the same RTL-SDR.  A failed scan must not leave stale audio alive.
+            self._stop_audio()
             self.points = simulated_spectrum() if self.simulate else self._rtl_power_spectrum()
             self.candidates = score_channels(self.points)
             if self.candidates and self.candidates[0].snr_db >= MIN_VALID_SNR_DB:
@@ -59,6 +62,7 @@ class RadioState:
                 self.tuned = None
                 self.tune_frequency_hz = None
                 self.running = False
+                self._stop_audio()
             return self.snapshot()
 
     def _start_audio(self) -> None:
