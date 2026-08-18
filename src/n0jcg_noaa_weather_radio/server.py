@@ -54,7 +54,7 @@ class RadioState:
 
     def _start_audio(self) -> None:
         self._stop_audio()
-        command = ["rtl_fm", "-d", REQUIRED_RTL_SERIAL, "-f", str(self.tune_frequency_hz or self.tuned.frequency_hz), "-M", "nfm", "-s", "48000", "-r", "48000", "-g", "40", "-E", "dc", "-E", "deemp"]
+        command = ["rtl_fm", "-d", REQUIRED_RTL_SERIAL, "-f", str(self.tune_frequency_hz or self.tuned.frequency_hz), "-M", "nfm", "-s", "48000", "-r", "48000", "-g", "30", "-E", "dc", "-E", "deemp"]
         try:
             self.audio_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         except OSError:
