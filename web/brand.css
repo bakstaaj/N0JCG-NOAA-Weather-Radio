@@ -1,2 +1,2 @@
-.brand-lockup{display:flex;align-items:flex-start;gap:16px}.brand-logo{width:74px;height:74px;object-fit:contain;border-radius:10px}
-@media(max-width:720px){.brand-logo{width:58px;height:58px}.brand-lockup{gap:10px}}
+header{max-width:none;background:#0a1f44;color:#fff;padding:24px max(24px,calc((100% - 1120px)/2));align-items:center}.brand-lockup{display:flex;align-items:center;gap:28px}.brand-logo{width:270px;height:auto;display:block}.brand-divider{width:1px;height:44px;background:#8fa4c4;opacity:.8}.brand-lockup h1{color:#fff;font-size:clamp(1.5rem,3vw,2.2rem);font-weight:600;letter-spacing:.01em;margin:0;white-space:nowrap}
+@media(max-width:720px){header{padding:18px 20px}.brand-lockup{gap:14px}.brand-logo{width:190px}.brand-divider{height:34px}.brand-lockup h1{font-size:1.15rem;white-space:normal}}

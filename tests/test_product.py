@@ -41,7 +41,7 @@ class ProductTests(unittest.TestCase):
         self.assertIn('RESTART REQUIRED', ui)
         self.assertIn('TRIAL PAUSED', ui)
         self.assertIn('formatTrialTime', ui)
-        self.assertIn('/assets/N0JCG_Icon_Approved.png', ui)
+        self.assertIn('/assets/N0JCG_Header_Dark_Approved.png', ui)
         self.assertIn('N0JCG Weather Radio', ui)
         self.assertNotIn('N0JCG WEATHER RADIO', ui)
         self.assertIn('/api/trial/restart', ui + (root / 'src/n0jcg_noaa_weather_radio/server.py').read_text())
