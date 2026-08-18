@@ -1,0 +1,2 @@
+.brand-lockup{display:flex;align-items:flex-start;gap:16px}.brand-logo{width:74px;height:74px;object-fit:contain;border-radius:10px}
+@media(max-width:720px){.brand-logo{width:58px;height:58px}.brand-lockup{gap:10px}}
