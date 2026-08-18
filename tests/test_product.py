@@ -38,7 +38,7 @@ class ProductTests(unittest.TestCase):
         self.assertIn('AudioContext', ui)
         self.assertIn('createScriptProcessor', ui)
         self.assertIn('No valid NOAA carrier found; audio is not started.', ui)
-        self.assertIn('Restart required', ui)
+        self.assertIn('RESTART REQUIRED', ui)
         self.assertIn('TRIAL PAUSED', ui)
         self.assertIn('formatTrialTime', ui)
 
