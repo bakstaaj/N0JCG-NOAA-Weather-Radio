@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -93,16 +94,26 @@ class RadioState:
             self._stop_audio()
 
     def _rtl_power_spectrum(self) -> list[FftPoint]:
-        command = ["rtl_power", "-f", "162.395M:162.555M:1k", "-i", "1", "-e", "1s", "-g", "40", "-d", REQUIRED_RTL_SERIAL]
+        # Use the same one-shot file-output form as Air Traffic Center.  The
+        # streaming -e form can be terminated by the subprocess timeout before
+        # rtl_power returns success, leaving the scanner with no usable rows.
+        RUNTIME.mkdir(parents=True, exist_ok=True)
+        csv_path = RUNTIME / "noaa-spectrum.csv"
+        csv_path.unlink(missing_ok=True)
+        command = [
+            "rtl_power", "-d", REQUIRED_RTL_SERIAL,
+            "-f", "162395000:162555000:1000", "-i", "1", "-1",
+            "-g", "40", str(csv_path),
+        ]
         try:
-            result = subprocess.run(command, capture_output=True, text=True, timeout=8, check=True)
+            result = subprocess.run(command, capture_output=True, text=True, timeout=18, check=False)
         except (OSError, subprocess.SubprocessError):
             return []
+        if result.returncode != 0 or not csv_path.is_file():
+            return []
         points: list[FftPoint] = []
-        for line in result.stdout.splitlines():
-            fields = line.split(",")
-            if len(fields) < 7:
-                continue
+        for fields in csv.reader(csv_path.read_text(encoding="utf-8", errors="replace").splitlines()):
+            if len(fields) < 7: continue
             try:
                 start, step = float(fields[2]), float(fields[4])
                 powers = [float(item) for item in fields[6:]]
