@@ -18,7 +18,26 @@ function render(state) {
   $("alerts").innerHTML = (state.alerts || []).map((a) => `<div class="alert"><strong>${a.event}</strong> · ${a.locations.join(", ")}<br><small>${a.received_at}</small></div>`).join("") || "No matching alerts.";
 }
 async function api(path, options) { const response = await fetch(path, {headers:{"Content-Type":"application/json"}, ...options}); const data = await response.json(); $("log").textContent = JSON.stringify(data, null, 2); if (!response.ok) throw new Error(data.error); return data; }
-async function refresh() { try { render(await api("/api/status")); const reg = await api("/api/registration"); $("registration").textContent = reg.mode.toUpperCase(); $("installation").textContent = reg.installation_id; $("status").textContent = "READY"; $("status").className = "pill ok"; } catch (error) { $("status").textContent = "OFFLINE"; $("log").textContent = error.message; } }
+async function refresh() {
+  try {
+    const state = await api("/api/status");
+    render(state);
+    $("status").textContent = "READY";
+    $("status").className = "pill ok";
+    try {
+      const reg = await api("/api/registration");
+      $("registration").textContent = reg.mode.toUpperCase();
+      $("installation").textContent = reg.installation_id;
+    } catch (error) {
+      $("registration").textContent = "UNAVAILABLE";
+      $("installation").textContent = "Receiver API is still online";
+    }
+  } catch (error) {
+    $("status").textContent = "OFFLINE";
+    $("status").className = "pill warn";
+    $("log").textContent = error.message;
+  }
+}
 async function listen() {
   let state = await api("/api/status");
   if (!state.running) state = await api("/api/scan", {method:"POST", body:"{}"});
