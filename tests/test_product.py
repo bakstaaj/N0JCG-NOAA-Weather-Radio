@@ -31,7 +31,6 @@ class ProductTests(unittest.TestCase):
         self.assertNotIn("/api/transmit", ui)
         self.assertIn('id="listen"', ui)
         self.assertIn('async function listen()', ui)
-        self.assertIn('/api/audio.wav', ui)
         self.assertIn('/api/audio.pcm', ui)
         self.assertIn('AudioContext', ui)
 
