@@ -1,0 +1,18 @@
+[Unit]
+Description=N0JCG NOAA Weather Radio
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/opt/n0jcg-noaa-weather-radio
+ExecStart=/usr/bin/python3 -m n0jcg_noaa_weather_radio.server --host 0.0.0.0 --port 8086
+Environment=PYTHONPATH=/opt/n0jcg-noaa-weather-radio/src
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

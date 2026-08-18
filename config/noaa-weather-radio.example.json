@@ -1,0 +1,18 @@
+{
+  "rtl_serial": "00000162",
+  "http_host": "0.0.0.0",
+  "http_port": 8086,
+  "scan_interval_seconds": 30,
+  "fft": {"sample_rate_hz": 240000, "fft_size": 4096, "gain_db": 40},
+  "same": {
+    "enabled": true,
+    "counties": [],
+    "events": [],
+    "min_priority": "all",
+    "siren_seconds": 8
+  },
+  "registration": {
+    "product_id": "n0jcg-noaa-weather-radio",
+    "activation_url": "https://register.n0jcg.com/api/v1/activate"
+  }
+}

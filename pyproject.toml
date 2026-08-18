@@ -1,0 +1,11 @@
+[project]
+name = "n0jcg-noaa-weather-radio"
+version = "0.1.0"
+description = "Receive-only NOAA Weather Radio scanner for RTL-SDR serial 00000162"
+requires-python = ">=3.11"
+
+[project.scripts]
+n0jcg-noaa-weather-radio = "n0jcg_noaa_weather_radio.server:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
