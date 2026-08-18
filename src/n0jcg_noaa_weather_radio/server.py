@@ -62,6 +62,22 @@ class RadioState:
             self.running = False
             self._stop_audio()
 
+    def _restart_trial_locked(self) -> None:
+        if registration_status(RUNTIME / "registration.json").get("registered"):
+            return
+        if self.trial_timer is not None:
+            self.trial_timer.cancel()
+        self.trial_started_at = time.monotonic()
+        self.trial_paused = False
+        self.trial_timer = threading.Timer(TRIAL_DURATION_SECONDS, self._expire_trial)
+        self.trial_timer.daemon = True
+        self.trial_timer.start()
+
+    def restart_trial(self) -> dict[str, object]:
+        with self.lock:
+            self._restart_trial_locked()
+            return self.snapshot()
+
     def registration(self) -> dict[str, object]:
         status = registration_status(RUNTIME / "registration.json")
         if status.get("registered"):
@@ -81,7 +97,7 @@ class RadioState:
     def scan(self) -> dict[str, object]:
         with self.lock:
             if not self.trial_available():
-                return self.snapshot()
+                self._restart_trial_locked()
             # Release a manual/listen receiver before asking rtl_power to claim
             # the same RTL-SDR.  A failed scan must not leave stale audio alive.
             self._stop_audio()
@@ -226,8 +242,9 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError: self._json({"ok": False, "error": "invalid_json"}, 400); return
         if path == "/api/scan": self._json(STATE.scan()); return
         if path == "/api/stop": STATE.stop(); self._json(STATE.snapshot()); return
+        if path == "/api/trial/restart": self._json(STATE.restart_trial()); return
         if path == "/api/tune":
-            if not STATE.trial_available(): self._json({"ok": False, "error": "trial_paused_restart_required"}, 403); return
+            if not STATE.trial_available(): STATE.restart_trial()
             STATE.tuned = channel_for_frequency(int(payload.get("frequency_hz", 162_550_000))); STATE.tune_frequency_hz = STATE.tuned.frequency_hz; STATE.running = True
             if not STATE.simulate: STATE._start_audio()
             self._json(STATE.snapshot()); return
