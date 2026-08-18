@@ -32,6 +32,8 @@ class ProductTests(unittest.TestCase):
         self.assertIn('id="listen"', ui)
         self.assertIn('async function listen()', ui)
         self.assertIn('/api/audio.wav', ui)
+        self.assertIn('/api/audio.pcm', ui)
+        self.assertIn('AudioContext', ui)
 
 
 if __name__ == "__main__":

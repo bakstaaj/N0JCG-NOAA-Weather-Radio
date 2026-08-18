@@ -1,5 +1,8 @@
 const $ = (id) => document.getElementById(id);
 const fmt = (hz) => `${(hz / 1e6).toFixed(3)} MHz`;
+let audioAbort = null;
+let audioContext = null;
+let audioNextTime = 0;
 function render(state) {
   const tuned = state.tuned;
   $("summary").textContent = state.simulate ? "Simulation mode - no live RF claim" : "Receive-only live mode";
@@ -19,13 +22,47 @@ async function listen() {
   if (!state.running) state = await api("/api/scan", {method:"POST", body:"{}"});
   render(state);
   if (state.simulate) { $("log").textContent = "Simulation mode has no live audio stream."; return; }
-  $("audio").hidden = false;
-  $("audio").src = "/api/audio.wav?listen=" + Date.now();
-  await $("audio").play();
+  await startPcmAudio();
 }
-$("scan").onclick = async () => { const state = await api("/api/scan", {method:"POST", body:"{}"}); render(state); if (!state.simulate) { $("audio").hidden = false; $("audio").src = "/api/audio.wav?started=" + Date.now(); $("audio").play().catch(() => {}); } };
+async function startPcmAudio() {
+  stopPcmAudio();
+  audioAbort = new AbortController();
+  audioContext = new (window.AudioContext || window.webkitAudioContext)({sampleRate: 48000});
+  await audioContext.resume();
+  audioNextTime = audioContext.currentTime + 0.08;
+  $("audioStatus").hidden = false;
+  $("audioStatus").textContent = "Live PCM audio connected - use system/browser volume.";
+  const response = await fetch("/api/audio.pcm?listen=" + Date.now(), {signal: audioAbort.signal});
+  if (!response.ok || !response.body) throw new Error("live PCM audio stream unavailable");
+  const reader = response.body.getReader();
+  let carry = new Uint8Array(0);
+  try {
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      const bytes = new Uint8Array(carry.length + part.value.length);
+      bytes.set(carry); bytes.set(part.value, carry.length); carry = bytes;
+      const usable = bytes.length - (bytes.length % 2);
+      if (!usable) continue;
+      const samples = new Float32Array(usable / 2);
+      const view = new DataView(bytes.buffer, bytes.byteOffset, usable);
+      for (let i = 0; i < samples.length; i++) samples[i] = view.getInt16(i * 2, true) / 32768;
+      carry = bytes.slice(usable);
+      const buffer = audioContext.createBuffer(1, samples.length, 48000);
+      buffer.copyToChannel(samples, 0);
+      const source = audioContext.createBufferSource(); source.buffer = buffer; source.connect(audioContext.destination);
+      const start = Math.max(audioNextTime, audioContext.currentTime + 0.02); source.start(start); audioNextTime = start + buffer.duration;
+    }
+  } catch (error) { if (error.name !== "AbortError") throw error; }
+}
+function stopPcmAudio() {
+  if (audioAbort) audioAbort.abort(); audioAbort = null;
+  if (audioContext) { audioContext.close(); audioContext = null; }
+  $("audioStatus").hidden = true;
+}
+$("scan").onclick = async () => { const state = await api("/api/scan", {method:"POST", body:"{}"}); render(state); if (!state.simulate) await startPcmAudio(); };
 $("listen").onclick = () => listen().catch((error) => { $("log").textContent = error.message; });
-$("stop").onclick = async () => { const state = await api("/api/stop", {method:"POST", body:"{}"}); render(state); $("audio").pause(); $("audio").removeAttribute("src"); $("audio").hidden = true; };
+$("stop").onclick = async () => { stopPcmAudio(); const state = await api("/api/stop", {method:"POST", body:"{}"}); render(state); };
 $("saveFilter").onclick = async () => { await api("/api/same/filter", {method:"POST", body:JSON.stringify({counties:$("counties").value.split(",").map(v=>v.trim()).filter(Boolean), events:$("events").value.split(",").map(v=>v.trim()).filter(Boolean)})}); };
 $("testAlert").onclick = async () => { await api("/api/same/test", {method:"POST", body:JSON.stringify({header:"ZCZC-WXR-TOR-006001+0015-2321800-KXYZ-"})}); await refresh(); };
 refresh(); setInterval(refresh, 5000);
