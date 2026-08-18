@@ -168,7 +168,7 @@ class RadioState:
         if tuned and self.tune_frequency_hz:
             tuned["tuned_frequency_hz"] = self.tune_frequency_hz
             tuned["offset_hz"] = self.tune_frequency_hz - self.tuned.frequency_hz
-        return {"ok": True, "product": PRODUCT_NAME, "simulate": self.simulate, "rtl_serial": REQUIRED_RTL_SERIAL, "running": self.running, "audio_profile": {"input_sample_rate_hz": NOAA_AUDIO_INPUT_RATE_HZ, "sample_rate_hz": NOAA_AUDIO_OUTPUT_RATE_HZ, "gain_db": NOAA_AUDIO_GAIN_DB, "offset_tuning": True, "dc_block": True, "deemphasis": True}, "registration": self.registration(), "tuned": tuned, "candidates": [{"channel": c.channel.__dict__, "peak_frequency_hz": c.peak_frequency_hz, "noise_floor_dbfs": c.noise_floor_dbfs, "snr_db": c.snr_db} for c in self.candidates], "alerts": self.alerts[-20:]}
+        return {"ok": True, "product": PRODUCT_NAME, "simulate": self.simulate, "rtl_serial": REQUIRED_RTL_SERIAL, "running": self.running, "audio_profile": {"input_sample_rate_hz": NOAA_AUDIO_INPUT_RATE_HZ, "sample_rate_hz": NOAA_AUDIO_OUTPUT_RATE_HZ, "gain_db": NOAA_AUDIO_GAIN_DB, "offset_tuning": True, "dc_block": True, "deemphasis": True}, "registration": self.registration(), "tuned": tuned, "candidates": [{"channel": c.channel.__dict__, "peak_frequency_hz": c.peak_frequency_hz, "peak_dbfs": c.peak_dbfs, "noise_floor_dbfs": c.noise_floor_dbfs, "snr_db": c.snr_db} for c in self.candidates], "alerts": self.alerts[-20:]}
 
     def ingest_same(self, text: str) -> bool:
         alert = parse_same_header(text)
