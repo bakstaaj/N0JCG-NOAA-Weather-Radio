@@ -28,6 +28,7 @@ class RadioState:
         self.points: list[FftPoint] = []
         self.candidates = []
         self.tuned = None
+        self.tune_frequency_hz: int | None = None
         self.running = False
         self.alerts: list[dict[str, object]] = []
         self.same_filter = SameFilter()
@@ -40,18 +41,20 @@ class RadioState:
             self.candidates = score_channels(self.points)
             if self.candidates and self.candidates[0].snr_db >= MIN_VALID_SNR_DB:
                 self.tuned = self.candidates[0].channel
+                self.tune_frequency_hz = self.candidates[0].peak_frequency_hz
                 self.running = True
                 if not self.simulate:
                     self._start_audio()
             else:
                 self.candidates = []
                 self.tuned = None
+                self.tune_frequency_hz = None
                 self.running = False
             return self.snapshot()
 
     def _start_audio(self) -> None:
         self._stop_audio()
-        command = ["rtl_fm", "-d", REQUIRED_RTL_SERIAL, "-f", str(self.tuned.frequency_hz), "-M", "nfm", "-s", "48000", "-r", "48000", "-g", "40", "-E", "dc", "-E", "deemp"]
+        command = ["rtl_fm", "-d", REQUIRED_RTL_SERIAL, "-f", str(self.tune_frequency_hz or self.tuned.frequency_hz), "-M", "nfm", "-s", "48000", "-r", "48000", "-g", "40", "-E", "dc", "-E", "deemp"]
         try:
             self.audio_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         except OSError:
@@ -92,7 +95,11 @@ class RadioState:
         return points
 
     def snapshot(self) -> dict[str, object]:
-        return {"ok": True, "product": PRODUCT_NAME, "simulate": self.simulate, "rtl_serial": REQUIRED_RTL_SERIAL, "running": self.running, "tuned": (self.tuned.__dict__ if self.tuned else None), "candidates": [{"channel": c.channel.__dict__, "peak_dbfs": c.peak_dbfs, "noise_floor_dbfs": c.noise_floor_dbfs, "snr_db": c.snr_db} for c in self.candidates], "alerts": self.alerts[-20:]}
+        tuned = self.tuned.__dict__.copy() if self.tuned else None
+        if tuned and self.tune_frequency_hz:
+            tuned["tuned_frequency_hz"] = self.tune_frequency_hz
+            tuned["offset_hz"] = self.tune_frequency_hz - self.tuned.frequency_hz
+        return {"ok": True, "product": PRODUCT_NAME, "simulate": self.simulate, "rtl_serial": REQUIRED_RTL_SERIAL, "running": self.running, "tuned": tuned, "candidates": [{"channel": c.channel.__dict__, "peak_frequency_hz": c.peak_frequency_hz, "peak_dbfs": c.peak_dbfs, "noise_floor_dbfs": c.noise_floor_dbfs, "snr_db": c.snr_db} for c in self.candidates], "alerts": self.alerts[-20:]}
 
     def ingest_same(self, text: str) -> bool:
         alert = parse_same_header(text)
@@ -151,7 +158,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/scan": self._json(STATE.scan()); return
         if path == "/api/stop": STATE.stop(); self._json(STATE.snapshot()); return
         if path == "/api/tune":
-            STATE.tuned = channel_for_frequency(int(payload.get("frequency_hz", 162_550_000))); STATE.running = True
+            STATE.tuned = channel_for_frequency(int(payload.get("frequency_hz", 162_550_000))); STATE.tune_frequency_hz = STATE.tuned.frequency_hz; STATE.running = True
             if not STATE.simulate: STATE._start_audio()
             self._json(STATE.snapshot()); return
         if path == "/api/same/filter":

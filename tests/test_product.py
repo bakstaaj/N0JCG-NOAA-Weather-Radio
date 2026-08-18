@@ -12,7 +12,9 @@ class ProductTests(unittest.TestCase):
         self.assertEqual([c.frequency_hz for c in NOAA_CHANNELS], [162400000,162425000,162450000,162475000,162500000,162525000,162550000])
 
     def test_fft_selects_strongest_candidate(self):
-        self.assertEqual(score_channels(simulated_spectrum())[0].channel.number, "WX4")
+        winner = score_channels(simulated_spectrum())[0]
+        self.assertEqual(winner.channel.number, "WX4")
+        self.assertEqual(winner.peak_frequency_hz, 162_475_000 + 2_500)
 
     def test_noise_floor_is_not_a_valid_weather_candidate(self):
         points = [FftPoint(162_400_000 + index * 625, -13.4) for index in range(256)]
