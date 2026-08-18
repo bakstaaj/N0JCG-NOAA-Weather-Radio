@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 from . import PRODUCT_NAME, REQUIRED_RTL_SERIAL
 from .channels import NOAA_CHANNELS, channel_for_frequency
-from .fft_scan import FftPoint, score_channels, simulated_spectrum
+from .fft_scan import FftPoint, MIN_VALID_SNR_DB, score_channels, simulated_spectrum
 from .registration import registration_status
 from .same import SameFilter, alert_matches, parse_same_header
 
@@ -38,11 +38,15 @@ class RadioState:
         with self.lock:
             self.points = simulated_spectrum() if self.simulate else self._rtl_power_spectrum()
             self.candidates = score_channels(self.points)
-            if self.candidates:
+            if self.candidates and self.candidates[0].snr_db >= MIN_VALID_SNR_DB:
                 self.tuned = self.candidates[0].channel
                 self.running = True
                 if not self.simulate:
                     self._start_audio()
+            else:
+                self.candidates = []
+                self.tuned = None
+                self.running = False
             return self.snapshot()
 
     def _start_audio(self) -> None:
@@ -83,7 +87,8 @@ class RadioState:
                 powers = [float(item) for item in fields[6:]]
             except ValueError:
                 continue
-            points.extend(FftPoint(int((start + index * step) * 1_000_000), power) for index, power in enumerate(powers))
+            scale = 1 if start > 1_000_000 else 1_000_000
+            points.extend(FftPoint(int((start + index * step) * scale), power) for index, power in enumerate(powers))
         return points
 
     def snapshot(self) -> dict[str, object]:

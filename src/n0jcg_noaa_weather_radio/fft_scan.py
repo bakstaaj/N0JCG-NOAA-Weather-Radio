@@ -6,6 +6,8 @@ from typing import Iterable
 
 from .channels import NOAA_CHANNELS, NoaaChannel
 
+MIN_VALID_SNR_DB = 6.0
+
 
 @dataclass(frozen=True)
 class FftPoint:

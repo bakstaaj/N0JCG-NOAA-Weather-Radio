@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 from n0jcg_noaa_weather_radio.channels import NOAA_CHANNELS
-from n0jcg_noaa_weather_radio.fft_scan import FftPoint, score_channels, simulated_spectrum
+from n0jcg_noaa_weather_radio.fft_scan import FftPoint, MIN_VALID_SNR_DB, score_channels, simulated_spectrum
 from n0jcg_noaa_weather_radio.same import SameFilter, alert_matches, parse_same_header
 
 
@@ -13,6 +13,10 @@ class ProductTests(unittest.TestCase):
 
     def test_fft_selects_strongest_candidate(self):
         self.assertEqual(score_channels(simulated_spectrum())[0].channel.number, "WX4")
+
+    def test_noise_floor_is_not_a_valid_weather_candidate(self):
+        points = [FftPoint(162_400_000 + index * 625, -13.4) for index in range(256)]
+        self.assertLess(score_channels(points)[0].snr_db, MIN_VALID_SNR_DB)
 
     def test_same_header_filter(self):
         alert = parse_same_header("ZCZC-WXR-TOR-006001+0015-2321800-KXYZ-")
