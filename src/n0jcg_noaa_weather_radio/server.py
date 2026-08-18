@@ -20,6 +20,14 @@ ROOT = Path(__file__).resolve().parents[2]
 STATIC = ROOT / "web"
 RUNTIME = ROOT / "runtime"
 
+# Match the validated NOAA path used by N0JCG Air Traffic Center.  The RTL
+# input rate gives the FM discriminator room around the channel; the lower
+# output rate is the operator audio stream.  Offset tuning lets rtl_fm correct
+# the tuner center internally instead of retuning to an FFT noise-bin peak.
+NOAA_AUDIO_INPUT_RATE_HZ = 240_000
+NOAA_AUDIO_OUTPUT_RATE_HZ = 24_000
+NOAA_AUDIO_GAIN_DB = 49.6
+
 
 class RadioState:
     def __init__(self, simulate: bool = False) -> None:
@@ -54,7 +62,17 @@ class RadioState:
 
     def _start_audio(self) -> None:
         self._stop_audio()
-        command = ["rtl_fm", "-d", REQUIRED_RTL_SERIAL, "-f", str(self.tune_frequency_hz or self.tuned.frequency_hz), "-M", "nfm", "-s", "48000", "-r", "48000", "-g", "30", "-E", "dc", "-E", "deemp"]
+        # Tune the canonical NOAA channel and let rtl_fm's offset tuner absorb
+        # the measured FFT-bin offset.  Directly tuning the peak bin was
+        # producing a narrow/static-prone discriminator path.
+        command = [
+            "rtl_fm", "-d", REQUIRED_RTL_SERIAL,
+            "-f", str(self.tuned.frequency_hz), "-M", "fm",
+            "-s", str(NOAA_AUDIO_INPUT_RATE_HZ),
+            "-r", str(NOAA_AUDIO_OUTPUT_RATE_HZ),
+            "-g", str(NOAA_AUDIO_GAIN_DB), "-l", "0", "-p", "0",
+            "-E", "offset", "-E", "dc", "-E", "deemp",
+        ]
         try:
             self.audio_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         except OSError:
@@ -99,7 +117,7 @@ class RadioState:
         if tuned and self.tune_frequency_hz:
             tuned["tuned_frequency_hz"] = self.tune_frequency_hz
             tuned["offset_hz"] = self.tune_frequency_hz - self.tuned.frequency_hz
-        return {"ok": True, "product": PRODUCT_NAME, "simulate": self.simulate, "rtl_serial": REQUIRED_RTL_SERIAL, "running": self.running, "tuned": tuned, "candidates": [{"channel": c.channel.__dict__, "peak_frequency_hz": c.peak_frequency_hz, "peak_dbfs": c.peak_dbfs, "noise_floor_dbfs": c.noise_floor_dbfs, "snr_db": c.snr_db} for c in self.candidates], "alerts": self.alerts[-20:]}
+        return {"ok": True, "product": PRODUCT_NAME, "simulate": self.simulate, "rtl_serial": REQUIRED_RTL_SERIAL, "running": self.running, "audio_profile": {"input_sample_rate_hz": NOAA_AUDIO_INPUT_RATE_HZ, "sample_rate_hz": NOAA_AUDIO_OUTPUT_RATE_HZ, "gain_db": NOAA_AUDIO_GAIN_DB, "offset_tuning": True, "dc_block": True, "deemphasis": True}, "tuned": tuned, "candidates": [{"channel": c.channel.__dict__, "peak_frequency_hz": c.peak_frequency_hz, "noise_floor_dbfs": c.noise_floor_dbfs, "snr_db": c.snr_db} for c in self.candidates], "alerts": self.alerts[-20:]}
 
     def ingest_same(self, text: str) -> bool:
         alert = parse_same_header(text)
@@ -128,7 +146,7 @@ class Handler(BaseHTTPRequestHandler):
             if not process or not process.stdout:
                 self._json({"ok": False, "error": "audio_not_running"}, 409); return
             self.send_response(200); self.send_header("Content-Type", "audio/wav"); self.send_header("Transfer-Encoding", "chunked"); self.end_headers()
-            header = b"RIFF" + struct.pack("<I", 0xFFFFFFFF) + b"WAVEfmt " + struct.pack("<IHHIIHH", 16, 1, 1, 48000, 96000, 2, 16) + b"data" + struct.pack("<I", 0xFFFFFFFF)
+            header = b"RIFF" + struct.pack("<I", 0xFFFFFFFF) + b"WAVEfmt " + struct.pack("<IHHIIHH", 16, 1, 1, NOAA_AUDIO_OUTPUT_RATE_HZ, NOAA_AUDIO_OUTPUT_RATE_HZ * 2, 2, 16) + b"data" + struct.pack("<I", 0xFFFFFFFF)
             self._chunk(header)
             while STATE.running and process.poll() is None:
                 chunk = process.stdout.read(4096)

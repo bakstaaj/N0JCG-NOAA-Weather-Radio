@@ -29,7 +29,7 @@ async function listen() {
 async function startPcmAudio() {
   stopPcmAudio();
   audioAbort = new AbortController();
-  audioContext = new (window.AudioContext || window.webkitAudioContext)({sampleRate: 48000});
+  audioContext = new (window.AudioContext || window.webkitAudioContext)({sampleRate: 24000});
   await audioContext.resume();
   audioQueue = [];
   audioQueueOffset = 0;

@@ -5,6 +5,7 @@ from pathlib import Path
 from n0jcg_noaa_weather_radio.channels import NOAA_CHANNELS
 from n0jcg_noaa_weather_radio.fft_scan import FftPoint, MIN_VALID_SNR_DB, score_channels, simulated_spectrum
 from n0jcg_noaa_weather_radio.same import SameFilter, alert_matches, parse_same_header
+from n0jcg_noaa_weather_radio.server import NOAA_AUDIO_GAIN_DB, NOAA_AUDIO_INPUT_RATE_HZ, NOAA_AUDIO_OUTPUT_RATE_HZ
 
 
 class ProductTests(unittest.TestCase):
@@ -36,6 +37,10 @@ class ProductTests(unittest.TestCase):
         self.assertIn('/api/audio.pcm', ui)
         self.assertIn('AudioContext', ui)
         self.assertIn('createScriptProcessor', ui)
+
+    def test_audio_profile_matches_validated_noaa_path(self):
+        self.assertEqual((NOAA_AUDIO_INPUT_RATE_HZ, NOAA_AUDIO_OUTPUT_RATE_HZ), (240000, 24000))
+        self.assertEqual(NOAA_AUDIO_GAIN_DB, 49.6)
 
 
 if __name__ == "__main__":
