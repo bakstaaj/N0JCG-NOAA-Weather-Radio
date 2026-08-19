@@ -26,6 +26,7 @@ class ProductTests(unittest.TestCase):
         self.assertIsNotNone(alert)
         self.assertTrue(alert_matches(alert, SameFilter(counties={"006001"}, events={"TOR"})))
         self.assertFalse(alert_matches(alert, SameFilter(counties={"013001"})))
+        self.assertTrue(alert_matches(alert, SameFilter(counties={"006001"}, events={"ALL"})))
 
     def test_product_identity_and_receive_only_ui(self):
         root = Path(__file__).resolve().parents[1]

@@ -41,5 +41,6 @@ def parse_same_header(text: str) -> SameAlert | None:
 
 def alert_matches(alert: SameAlert, config: SameFilter) -> bool:
     county_ok = not config.counties or bool(set(alert.locations) & {c.upper() for c in config.counties})
-    event_ok = not config.events or alert.event in {e.upper() for e in config.events}
+    normalized_events = {e.upper() for e in config.events}
+    event_ok = not normalized_events or "ALL" in normalized_events or alert.event in normalized_events
     return county_ok and event_ok
