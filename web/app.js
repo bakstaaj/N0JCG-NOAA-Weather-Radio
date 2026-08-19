@@ -30,7 +30,7 @@ function render(state) {
   $("channels").innerHTML = (state.candidates || []).map((item) => `<div class="channel ${winner && item.channel.number === winner.channel.number ? "winner" : ""}"><strong>${item.channel.number}</strong><span>${item.channel.label}</span><small>${item.peak_dbfs.toFixed(1)} dBFS / ${item.snr_db.toFixed(1)} dB SNR</small></div>`).join("") || "<p>No spectrum candidates yet.</p>";
   $("alerts").innerHTML = (state.alerts || []).map((a) => `<div class="alert"><strong>${a.event}</strong> · ${a.locations.join(", ")}<br><small>${a.received_at}</small></div>`).join("") || "No matching alerts.";
 }
-async function api(path, options) { const response = await fetch(path, {headers:{"Content-Type":"application/json"}, ...options}); const data = await response.json(); $("log").textContent = JSON.stringify(data, null, 2); if (!response.ok) throw new Error(data.error); return data; }
+async function api(path, options) { const response = await fetch(path, {headers:{"Content-Type":"application/json"}, ...options}); const data = await response.json(); const log = $("log"); if (log) log.textContent = JSON.stringify(data, null, 2); if (!response.ok) throw new Error(data.error); return data; }
 async function refresh() {
   try {
     const state = await api("/api/status");
@@ -41,14 +41,14 @@ async function refresh() {
   } catch (error) {
     $("status").textContent = "OFFLINE";
     $("status").className = "pill warn";
-    $("log").textContent = error.message;
+    const log = $("log"); if (log) log.textContent = error.message;
   }
 }
 async function listen() {
   let state = await api("/api/status");
   if (!state.running) state = await api("/api/scan", {method:"POST", body:"{}"});
   render(state);
-  if (state.simulate) { $("log").textContent = "Simulation mode has no live audio stream."; return; }
+  if (state.simulate) { const log = $("log"); if (log) log.textContent = "Simulation mode has no live audio stream."; return; }
   if (!state.running || !state.tuned) {
     stopPcmAudio();
     $("audioStatus").hidden = false;
@@ -120,7 +120,7 @@ $("scan").onclick = async () => {
     $("audioStatus").textContent = "No valid NOAA carrier found; audio is not started.";
   }
 };
-$("listen").onclick = () => listen().catch((error) => { $("log").textContent = error.message; });
+$("listen").onclick = () => listen().catch((error) => { const log = $("log"); if (log) log.textContent = error.message; });
 $("stop").onclick = async () => { stopPcmAudio(); const state = await api("/api/stop", {method:"POST", body:"{}"}); render(state); };
 let sameLocations = [];
 const sameEventCodes = [["TOR", "Tornado Warning"], ["SVR", "Severe Thunderstorm Warning"], ["FFW", "Flash Flood Warning"], ["FLW", "Flood Warning"], ["HWW", "High Wind Warning"], ["EVI", "Evacuation Immediate"], ["RWT", "Required Weekly Test"]];
@@ -132,8 +132,7 @@ function renderSameEventLinks() { $("sameEventLinks").innerHTML = sameEventCodes
 $("sameLocationSearch").addEventListener("input", (event) => renderSameLocations(event.target.value));
 renderSameEventLinks();
 loadSameLocations();
-$("saveFilter").onclick = async () => { await api("/api/same/filter", {method:"POST", body:JSON.stringify({counties:$("counties").value.split(",").map(v=>v.trim()).filter(Boolean), events:$("events").value.split(",").map(v=>v.trim()).filter(Boolean)})}); };
-$("testAlert").onclick = async () => { await api("/api/same/test", {method:"POST", body:JSON.stringify({header:"ZCZC-WXR-TOR-006001+0015-2321800-KXYZ-"})}); await refresh(); };
+$("saveFilter").onclick = async () => { const status = $("sameFilterStatus"); const button = $("saveFilter"); button.disabled = true; status.textContent = "Saving…"; try { await api("/api/same/filter", {method:"POST", body:JSON.stringify({counties:$("counties").value.split(",").map(v=>v.trim()).filter(Boolean), events:$("events").value.split(",").map(v=>v.trim()).filter(Boolean)})}); status.textContent = "SAME settings updated."; } catch (error) { status.textContent = error.message; } finally { button.disabled = false; } };
 setInterval(() => {
   if (trialRemainingSeconds != null && !trialPaused) {
     trialRemainingSeconds = Math.max(0, trialRemainingSeconds - 1);
