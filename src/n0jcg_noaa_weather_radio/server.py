@@ -43,6 +43,12 @@ class RadioState:
         self.running = False
         self.alerts: list[dict[str, object]] = []
         self.same_filter = SameFilter()
+        self.same_filter_path = RUNTIME / "same-filter.json"
+        try:
+            saved_filter = json.loads(self.same_filter_path.read_text(encoding="utf-8"))
+            self.same_filter = SameFilter(set(saved_filter.get("counties", [])), set(saved_filter.get("events", [])), str(saved_filter.get("min_priority", "all")))
+        except (FileNotFoundError, ValueError, TypeError):
+            pass
         self.config = {"rtl_serial": REQUIRED_RTL_SERIAL, "same": {"enabled": True}}
         self.audio_process: subprocess.Popen[bytes] | None = None
         self.trial_started_at = time.monotonic()
@@ -184,7 +190,8 @@ class RadioState:
         if tuned and self.tune_frequency_hz:
             tuned["tuned_frequency_hz"] = self.tune_frequency_hz
             tuned["offset_hz"] = self.tune_frequency_hz - self.tuned.frequency_hz
-        return {"ok": True, "product": PRODUCT_NAME, "simulate": self.simulate, "rtl_serial": REQUIRED_RTL_SERIAL, "running": self.running, "audio_profile": {"input_sample_rate_hz": NOAA_AUDIO_INPUT_RATE_HZ, "sample_rate_hz": NOAA_AUDIO_OUTPUT_RATE_HZ, "gain_db": NOAA_AUDIO_GAIN_DB, "offset_tuning": True, "dc_block": True, "deemphasis": True}, "registration": self.registration(), "tuned": tuned, "candidates": [{"channel": c.channel.__dict__, "peak_frequency_hz": c.peak_frequency_hz, "peak_dbfs": c.peak_dbfs, "noise_floor_dbfs": c.noise_floor_dbfs, "snr_db": c.snr_db} for c in self.candidates], "alerts": self.alerts[-20:]}
+        same_filter = {"counties": sorted(self.same_filter.counties), "events": sorted(self.same_filter.events), "min_priority": self.same_filter.min_priority}
+        return {"ok": True, "product": PRODUCT_NAME, "simulate": self.simulate, "rtl_serial": REQUIRED_RTL_SERIAL, "running": self.running, "audio_profile": {"input_sample_rate_hz": NOAA_AUDIO_INPUT_RATE_HZ, "sample_rate_hz": NOAA_AUDIO_OUTPUT_RATE_HZ, "gain_db": NOAA_AUDIO_GAIN_DB, "offset_tuning": True, "dc_block": True, "deemphasis": True}, "registration": self.registration(), "same_filter": same_filter, "tuned": tuned, "candidates": [{"channel": c.channel.__dict__, "peak_frequency_hz": c.peak_frequency_hz, "peak_dbfs": c.peak_dbfs, "noise_floor_dbfs": c.noise_floor_dbfs, "snr_db": c.snr_db} for c in self.candidates], "alerts": self.alerts[-20:]}
 
     def ingest_same(self, text: str) -> bool:
         alert = parse_same_header(text)
@@ -249,7 +256,7 @@ class Handler(BaseHTTPRequestHandler):
             if not STATE.simulate: STATE._start_audio()
             self._json(STATE.snapshot()); return
         if path == "/api/same/filter":
-            STATE.same_filter = SameFilter(set(payload.get("counties", [])), set(payload.get("events", [])), str(payload.get("min_priority", "all"))); self._json({"ok": True}); return
+            STATE.same_filter = SameFilter(set(payload.get("counties", [])), set(payload.get("events", [])), str(payload.get("min_priority", "all"))); RUNTIME.mkdir(parents=True, exist_ok=True); STATE.same_filter_path.write_text(json.dumps({"counties": sorted(STATE.same_filter.counties), "events": sorted(STATE.same_filter.events), "min_priority": STATE.same_filter.min_priority}, indent=2) + "\n", encoding="utf-8"); self._json(STATE.snapshot()); return
         if path == "/api/same/test": self._json({"ok": True, "matched": STATE.ingest_same(str(payload.get("header", ""))) }); return
         if path == "/api/registration/activate":
             token = str(payload.get("license_token", "")).strip()

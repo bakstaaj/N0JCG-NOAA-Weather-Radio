@@ -20,6 +20,9 @@ function formatTrialTime(seconds) {
   return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, "0")}`;
 }
 function render(state) {
+  const sameFilter = state.same_filter || {};
+  if (document.activeElement?.id !== "counties") $("counties").value = (sameFilter.counties || []).join(",");
+  if (document.activeElement?.id !== "events") $("events").value = (sameFilter.events || []).join(",");
   const tuned = state.tuned;
   $("serial").textContent = state.rtl_serial;
   $("tuned").textContent = tuned ? tuned.number : "Not tuned";
