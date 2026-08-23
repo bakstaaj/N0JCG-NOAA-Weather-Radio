@@ -29,6 +29,8 @@ RUNTIME = ROOT / "runtime"
 NOAA_AUDIO_INPUT_RATE_HZ = 240_000
 NOAA_AUDIO_OUTPUT_RATE_HZ = 24_000
 NOAA_AUDIO_GAIN_DB = 49.6
+NOAA_AUDIO_CHUNK_SAMPLES = 12_000
+NOAA_AUDIO_CHUNK_BYTES = NOAA_AUDIO_CHUNK_SAMPLES * 2
 TRIAL_DURATION_SECONDS = 300
 
 
@@ -226,6 +228,18 @@ class Handler(BaseHTTPRequestHandler):
                 chunk = process.stdout.read(4096)
                 if not chunk: break
                 self._chunk(chunk)
+            return
+        if path == "/api/audio.chunk.wav":
+            process = STATE.audio_process
+            if not process or not process.stdout or not STATE.running:
+                self._json({"ok": False, "error": "audio_not_running"}, 409); return
+            chunk = process.stdout.read(NOAA_AUDIO_CHUNK_BYTES)
+            if len(chunk) != NOAA_AUDIO_CHUNK_BYTES:
+                self._json({"ok": False, "error": "audio_chunk_unavailable"}, 503); return
+            data_size = len(chunk)
+            header = b"RIFF" + struct.pack("<I", 36 + data_size) + b"WAVEfmt " + struct.pack("<IHHIIHH", 16, 1, 1, NOAA_AUDIO_OUTPUT_RATE_HZ, NOAA_AUDIO_OUTPUT_RATE_HZ * 2, 2, 16) + b"data" + struct.pack("<I", data_size)
+            body = header + chunk
+            self.send_response(200); self.send_header("Content-Type", "audio/wav"); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
             return
         if path == "/api/audio.pcm":
             process = STATE.audio_process

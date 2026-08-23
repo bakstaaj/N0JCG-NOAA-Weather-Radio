@@ -69,8 +69,9 @@ interference or a local non-weather signal; verify intelligible NOAA audio.
 
 Specific Area Message Encoding (SAME) filters are operator-configurable. Enter
 county FIPS codes and event codes such as `TOR` or `SVR`, separated by commas.
-An empty field accepts all values. The test button exercises parsing only; it
-does not prove that an over-the-air SAME message was received.
+An empty field accepts all values. The **ALL** event shortcut explicitly
+selects every event type. Select **Save / Update SAME settings** after making
+changes; the settings are restored after a browser refresh and service restart.
 
 Alert validation requires a live NOAA SAME transmission or a controlled audio
 fixture. Record the raw header, UTC receipt time, channel, and whether the

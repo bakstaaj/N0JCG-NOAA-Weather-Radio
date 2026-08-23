@@ -2,9 +2,7 @@ const $ = (id) => document.getElementById(id);
 const fmt = (hz) => `${(hz / 1e6).toFixed(3)} MHz`;
 let audioAbort = null;
 let audioContext = null;
-let audioNode = null;
-let audioQueue = [];
-let audioQueueOffset = 0;
+let audioNextStart = 0;
 let trialRemainingSeconds = null;
 let trialPaused = false;
 function renderRegistration(registration) {
@@ -65,51 +63,29 @@ async function startPcmAudio() {
   audioAbort = new AbortController();
   audioContext = new (window.AudioContext || window.webkitAudioContext)({sampleRate: 24000});
   await audioContext.resume();
-  audioQueue = [];
-  audioQueueOffset = 0;
-  audioNode = audioContext.createScriptProcessor(4096, 0, 1);
-  audioNode.onaudioprocess = (event) => {
-    const output = event.outputBuffer.getChannelData(0);
-    output.fill(0);
-    let written = 0;
-    while (written < output.length && audioQueue.length) {
-      const source = audioQueue[0];
-      const available = source.length - audioQueueOffset;
-      const count = Math.min(available, output.length - written);
-      output.set(source.subarray(audioQueueOffset, audioQueueOffset + count), written);
-      written += count;
-      audioQueueOffset += count;
-      if (audioQueueOffset >= source.length) { audioQueue.shift(); audioQueueOffset = 0; }
-    }
-  };
-  audioNode.connect(audioContext.destination);
+  audioNextStart = audioContext.currentTime + 0.04;
   $("audioStatus").hidden = false;
-  $("audioStatus").textContent = "Live PCM audio connected - use system/browser volume.";
-  const response = await fetch("/api/audio.pcm?listen=" + Date.now(), {signal: audioAbort.signal});
-  if (!response.ok || !response.body) throw new Error("live PCM audio stream unavailable");
-  const reader = response.body.getReader();
-  let carry = new Uint8Array(0);
-  try {
-    while (true) {
-      const part = await reader.read();
-      if (part.done) break;
-      const bytes = new Uint8Array(carry.length + part.value.length);
-      bytes.set(carry); bytes.set(part.value, carry.length); carry = bytes;
-      const usable = bytes.length - (bytes.length % 2);
-      if (!usable) continue;
-      const samples = new Float32Array(usable / 2);
-      const view = new DataView(bytes.buffer, bytes.byteOffset, usable);
-      for (let i = 0; i < samples.length; i++) samples[i] = view.getInt16(i * 2, true) / 32768;
-      carry = bytes.slice(usable);
-      audioQueue.push(samples);
-    }
-  } catch (error) { if (error.name !== "AbortError") throw error; }
+  $("audioStatus").textContent = "Live WAV audio connected - use system/browser volume.";
+  audioChunkLoop(audioAbort.signal).catch((error) => { if (error.name !== "AbortError") { $("audioStatus").textContent = error.message; } });
+}
+async function audioChunkLoop(signal) {
+  while (!signal.aborted && audioContext) {
+    const response = await fetch("/api/audio.chunk.wav?chunk=" + Date.now(), {signal});
+    if (response.status === 409 || response.status === 503) { await new Promise((resolve) => setTimeout(resolve, 250)); continue; }
+    if (!response.ok) throw new Error("finite WAV audio chunk unavailable");
+    const buffer = await audioContext.decodeAudioData(await response.arrayBuffer());
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContext.destination);
+    const startAt = Math.max(audioNextStart, audioContext.currentTime + 0.04);
+    source.start(startAt);
+    audioNextStart = startAt + buffer.duration;
+  }
 }
 function stopPcmAudio() {
   if (audioAbort) audioAbort.abort(); audioAbort = null;
-  if (audioNode) { audioNode.disconnect(); audioNode = null; }
   if (audioContext) { audioContext.close(); audioContext = null; }
-  audioQueue = []; audioQueueOffset = 0;
+  audioNextStart = 0;
   $("audioStatus").hidden = true;
 }
 $("scan").onclick = async () => {
