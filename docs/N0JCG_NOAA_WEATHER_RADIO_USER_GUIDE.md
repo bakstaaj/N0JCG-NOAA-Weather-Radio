@@ -41,11 +41,16 @@ directory. Use `systemctl status n0jcg-noaa-weather-radio` and
 ## First operation
 
 1. Confirm the page shows RTL-SDR `00000162`.
-2. Press **Scan strongest**. The application surveys 162.395-162.555 MHz and
-   scores a window around every canonical channel.
-3. Review the candidate cards. The winner is shown in the current receiver
-   card and is the channel selected for the receive audio path.
-4. Press **Stop** before disconnecting the receiver or changing USB hardware.
+2. Press **Start**. The application surveys 162.395-162.555 MHz, scores a
+   window around every canonical channel, and starts browser audio on the
+   strongest valid candidate.
+3. Review the candidate cards. Click any card to tune that NOAA channel
+   directly and start its audio path.
+4. Press **Stop**—the same button changes from Start to Stop—before
+   disconnecting the receiver or changing USB hardware.
+
+The SAME alert settings and operator controls are available from the hamburger
+menu in the header.
 
 Simulation mode (`--simulate`) intentionally selects a deterministic test
 winner and is useful for UI validation. It is not a live RF test.
