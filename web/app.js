@@ -28,7 +28,9 @@ function render(state) {
   const winner = state.candidates?.[0];
   $("snr").textContent = winner ? `${winner.snr_db.toFixed(1)} dB SNR` : "-";
   $("scanState").textContent = state.running ? "Audio path selected" : "Stopped";
-  $("channels").innerHTML = (state.candidates || []).map((item) => `<div class="channel ${winner && item.channel.number === winner.channel.number ? "winner" : ""}"><strong>${item.channel.number}</strong><span>${item.channel.label}</span><small>${item.peak_dbfs.toFixed(1)} dBFS / ${item.snr_db.toFixed(1)} dB SNR</small></div>`).join("") || "<p>No spectrum candidates yet.</p>";
+  $("start").textContent = state.running ? "Stop" : "Start";
+  $("channels").innerHTML = (state.candidates || []).map((item) => `<button type="button" class="channel ${winner && item.channel.number === winner.channel.number ? "winner" : ""}" data-frequency="${item.channel.frequency_hz}" title="Tune ${item.channel.number}"><strong>${item.channel.number}</strong><span>${item.channel.label}</span><small>${item.peak_dbfs.toFixed(1)} dBFS / ${item.snr_db.toFixed(1)} dB SNR</small><em>Click to tune</em></button>`).join("") || "<p>No spectrum candidates yet.</p>";
+  $("channels").querySelectorAll("[data-frequency]").forEach((button) => button.addEventListener("click", () => tuneChannel(Number(button.dataset.frequency))));
   $("alerts").innerHTML = (state.alerts || []).map((a) => `<div class="alert"><strong>${a.event}</strong> · ${a.locations.join(", ")}<br><small>${a.received_at}</small></div>`).join("") || "No matching alerts.";
 }
 async function api(path, options) { const response = await fetch(path, {headers:{"Content-Type":"application/json"}, ...options}); const data = await response.json(); const log = $("log"); if (log) log.textContent = JSON.stringify(data, null, 2); if (!response.ok) throw new Error(data.error); return data; }
@@ -88,19 +90,12 @@ function stopPcmAudio() {
   audioNextStart = 0;
   $("audioStatus").hidden = true;
 }
-$("scan").onclick = async () => {
-  const state = await api("/api/scan", {method:"POST", body:"{}"});
-  render(state);
-  if (state.simulate) return;
-  if (state.running && state.tuned) await startPcmAudio();
-  else {
-    stopPcmAudio();
-    $("audioStatus").hidden = false;
-    $("audioStatus").textContent = "No valid NOAA carrier found; audio is not started.";
-  }
-};
-$("listen").onclick = () => listen().catch((error) => { const log = $("log"); if (log) log.textContent = error.message; });
-$("stop").onclick = async () => { stopPcmAudio(); const state = await api("/api/stop", {method:"POST", body:"{}"}); render(state); };
+async function startRadio() { const state = await api("/api/scan", {method:"POST", body:"{}"}); render(state); if (state.simulate) return; if (state.running && state.tuned) await startPcmAudio(); else { stopPcmAudio(); $("audioStatus").hidden = false; $("audioStatus").textContent = "No valid NOAA carrier found; audio is not started."; } }
+async function stopRadio() { stopPcmAudio(); render(await api("/api/stop", {method:"POST", body:"{}"})); $("audioStatus").hidden = false; $("audioStatus").textContent = "Audio stopped."; }
+async function toggleRadio() { const state = await api("/api/status"); if (state.running) return stopRadio(); return startRadio(); }
+async function tuneChannel(frequencyHz) { stopPcmAudio(); const state = await api("/api/tune", {method:"POST", body:JSON.stringify({frequency_hz: frequencyHz})}); render(state); if (!state.simulate && state.running && state.tuned) await startPcmAudio(); }
+$("start").onclick = () => toggleRadio().catch((error) => { const log = $("log"); if (log) log.textContent = error.message; });
+$("menuToggle").onclick = () => { const panel = document.querySelector("section.two"); const open = !panel.classList.contains("menu-open"); panel.classList.toggle("menu-open", open); $("menuToggle").setAttribute("aria-expanded", String(open)); };
 let sameLocations = [];
 const sameEventCodes = [["ALL", "All event types"], ["TOR", "Tornado Warning"], ["SVR", "Severe Thunderstorm Warning"], ["FFW", "Flash Flood Warning"], ["FLW", "Flood Warning"], ["HWW", "High Wind Warning"], ["EVI", "Evacuation Immediate"], ["RWT", "Required Weekly Test"]];
 const escapeHtml = (value) => String(value).replace(/[&<>\"']/g, (character) => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#39;"}[character]));
