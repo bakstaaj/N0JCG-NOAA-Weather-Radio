@@ -9,7 +9,7 @@ independent of N0JCG Scanner and N0JCG Air Traffic Center.
 
 ## Current release boundary
 
-Version 0.1.0 is a software-staged preview. Simulation mode, FFT scoring,
+Version 0.1.1 is a software-staged preview. Simulation mode, FFT scoring,
 configuration, registration state, SAME parsing, tests, UI, installer, and
 documentation are included. Live RF audio, real antenna coverage, USB
 enumeration, and end-to-end SAME decode require validation on the target Pi.
@@ -30,7 +30,7 @@ Open `http://127.0.0.1:8086/`. The default live service uses
 ## Product surfaces
 
 - [Operator guide](docs/N0JCG_NOAA_WEATHER_RADIO_USER_GUIDE.md)
-- [Release and validation notes](docs/RELEASE_v0.1.0.md)
+- [Release and validation notes](docs/RELEASE_v0.1.1.md)
 - [Configuration example](config/noaa-weather-radio.example.json)
 - [Deployment installer](deploy/install.sh)
 

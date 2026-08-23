@@ -1,6 +1,6 @@
 # N0JCG NOAA Weather Radio
 
-## Operator user guide v0.1.0
+## Operator user guide v0.1.1
 
 N0JCG NOAA Weather Radio is a receive-only Raspberry Pi appliance. It uses one
 RTL-SDR identified by EEPROM serial `00000162`, surveys the seven NOAA Weather
@@ -51,6 +51,14 @@ directory. Use `systemctl status n0jcg-noaa-weather-radio` and
 
 The SAME alert settings and operator controls are available from the hamburger
 menu in the header.
+
+### Browser audio
+
+Pressing **Start** or selecting a candidate card starts the browser audio path
+for the tuned channel. The receiver demodulates narrow FM at 48 kHz and the
+server provides short 24 kHz mono WAV segments to the browser for scheduled
+playback. Use the browser and operating-system volume controls; a connected
+audio indicator confirms the software path, not intelligible RF reception.
 
 Simulation mode (`--simulate`) intentionally selects a deterministic test
 winner and is useful for UI validation. It is not a live RF test.
@@ -107,7 +115,8 @@ must validate signed product-scoped tokens before a production release.
 
 ## Support boundary and release evidence
 
-The v0.1.0 release includes software tests, simulation mode, static UI checks,
-and package construction. Hardware-dependent acceptance remains pending until
+The v0.1.1 release includes software tests, simulation mode, static UI checks,
+the compact operator dashboard, direct channel tuning, scheduled browser WAV
+audio, and package construction. Hardware-dependent acceptance remains pending until
 the specified RTL-SDR is connected on the target Pi and a live FFT scan, NFM
 audio, and controlled SAME fixture are recorded.
