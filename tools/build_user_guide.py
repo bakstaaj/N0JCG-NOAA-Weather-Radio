@@ -9,7 +9,7 @@ from docx.oxml.ns import qn
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "publications"
 OUT.mkdir(parents=True, exist_ok=True)
-DOCX = OUT / "N0JCG_NOAA_Weather_Radio_User_Guide_v0.1.3.docx"
+DOCX = OUT / "N0JCG_NOAA_Weather_Radio_User_Guide_v0.1.4.docx"
 SCREENSHOTS = ROOT / "docs" / "assets"
 
 def shade(cell, fill):
@@ -22,12 +22,12 @@ styles["Normal"].font.name = "Arial"; styles["Normal"].font.size = Pt(10); style
 for name, size, color in (("Title",30,"0A1F44"),("Heading 1",20,"0A1F44"),("Heading 2",14,"1565C0"),("Heading 3",11,"1565C0")):
     style = styles[name]; style.font.name = "Arial"; style.font.size = Pt(size); style.font.bold = True; style.font.color.rgb = RGBColor.from_string(color)
 header = section.header.paragraphs[0]; header.text = "N0JCG  /  OPEN RADIO PLATFORM"; header.runs[0].font.color.rgb = RGBColor(21,101,192); header.runs[0].font.bold = True
-footer = section.footer.paragraphs[0]; footer.alignment = WD_ALIGN_PARAGRAPH.CENTER; footer.add_run("N0JCG NOAA Weather Radio  |  v0.1.3  |  Receive-only by design")
+footer = section.footer.paragraphs[0]; footer.alignment = WD_ALIGN_PARAGRAPH.CENTER; footer.add_run("N0JCG NOAA Weather Radio  |  v0.1.4  |  Receive-only by design")
 
 title = doc.add_paragraph(style="Title"); title.add_run("N0JCG NOAA Weather Radio")
-sub = doc.add_paragraph(); sub.add_run("Operator User Guide  |  Preview release v0.1.3").bold = True
+sub = doc.add_paragraph(); sub.add_run("Operator User Guide  |  Preview release v0.1.4").bold = True
 doc.add_paragraph("A focused receive-only Raspberry Pi appliance for all seven US NOAA Weather Radio channels, FFT-directed strongest-channel selection, NFM audio, and operator-configurable SAME alert filters.")
-doc.add_picture(str(SCREENSHOTS / "dashboard-v0.1.3.png"), width=Inches(6.7))
+doc.add_picture(str(SCREENSHOTS / "dashboard-live-v0.1.4.png"), width=Inches(6.7))
 doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
 caption = doc.add_paragraph("Figure 1. Compact dashboard with receiver identity, trial status, Start/Stop control, and FFT-ranked NOAA candidates."); caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
@@ -38,34 +38,42 @@ def bullets(items):
 def steps(items):
     for item in items: doc.add_paragraph(item, style="List Number")
 
-h("Safety and operating boundary")
+meta = doc.add_table(rows=0, cols=2); meta.style = "Table Grid"
+for key, value in (("Product", "N0JCG NOAA Weather Radio"), ("Product ID", "n0jcg-noaa-weather-radio"), ("Document", "Operator user guide"), ("Version", "0.1.4"), ("Status", "Preview"), ("Receiver", "RTL-SDR serial 00000162"), ("Audience", "Operators and installers"), ("Owner", "N0JCG")):
+    cells = meta.add_row().cells; cells[0].text = key; cells[1].text = value; shade(cells[0], "EAF4FB")
+doc.add_page_break()
+h("Contents")
+for item in ("1. What N0JCG NOAA Weather Radio does", "2. Safety and operating boundary", "3. Hardware and identity", "4. Installation", "5. First operation", "6. NOAA channel plan", "7. FFT scan and browser audio", "8. SAME alerts", "9. Registration and trial access", "10. Troubleshooting", "11. Release boundary"):
+    doc.add_paragraph(item)
+doc.add_page_break()
+h("1. What N0JCG NOAA Weather Radio does")
 p("This product has no transmit path. It is not an emergency alert replacement; keep an official weather receiver or other warning source available. A green application status proves software state, not RF coverage or the correctness of a warning.")
-h("Hardware and identity")
+h("3. Hardware and identity")
 p("Use a Raspberry Pi with current 64-bit Raspberry Pi OS, stable power, network access, an RTL-SDR with EEPROM serial 00000162, and a suitable VHF antenna. USB enumeration is not serial ownership; the application passes the required serial to RTL tools and does not use a temporary USB index.")
-h("Installation")
+h("4. Installation")
 steps(["From an MSYS2 UCRT64 shell, run ./deploy/install.sh --check-only.", "Run ./deploy/install.sh on the target Pi.", "Open http://<pi-address>:8086/ and confirm serial 00000162.", "Use systemctl status n0jcg-noaa-weather-radio and journalctl -u n0jcg-noaa-weather-radio for service evidence."])
-h("First operation")
+h("5. First operation")
 steps(["Confirm the receiver serial card shows 00000162.", "Press Start. The application surveys 162.395-162.555 MHz and starts browser audio on the strongest valid candidate.", "Review candidate cards; click any card to tune directly to that NOAA channel.", "Press Stop—the same button changes from Start to Stop—before disconnecting the receiver or changing USB hardware."])
 p("Simulation mode is available with python3 -m n0jcg_noaa_weather_radio.server --simulate. It selects a deterministic test winner for software validation and is not live RF proof.")
-h("NOAA channel plan")
+h("6. NOAA channel plan")
 table = doc.add_table(rows=1, cols=2); table.alignment = WD_TABLE_ALIGNMENT.CENTER; table.style = "Table Grid"
 for cell, text in zip(table.rows[0].cells, ("Channel", "Frequency")):
     cell.text = text; shade(cell, "0A1F44"); cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER; run = cell.paragraphs[0].runs[0]; run.font.color.rgb = RGBColor(255,255,255); run.font.bold = True
 for channel, frequency in (("WX1","162.400 MHz"),("WX2","162.425 MHz"),("WX3","162.450 MHz"),("WX4","162.475 MHz"),("WX5","162.500 MHz"),("WX6","162.525 MHz"),("WX7","162.550 MHz")):
     cells = table.add_row().cells; cells[0].text = channel; cells[1].text = frequency
-h("FFT scan and audio")
+h("7. FFT scan and browser audio")
 p("The scanner scores power around each canonical channel from one wide survey. The highest SNR candidate is selected, then rtl_fm is started in narrow-FM mode at 48 kHz. The server supplies short 24 kHz mono WAV segments to the browser for scheduled playback. A high peak can still be interference; verify intelligible NOAA audio and inspect the other candidate values.")
-h("SAME alerts")
+h("8. SAME alerts")
 p("Enter county FIPS codes and SAME event codes such as TOR or SVR, separated by commas. Empty fields accept all values. The test parser exercises syntax only; it does not prove that an over-the-air warning was received.")
 bullets(["Record the raw header and UTC receipt time for live validation.", "Verify the tuned channel and intelligible 1050 Hz alert sequence.", "Treat a parsed test header as a software check, never as an operational warning."])
-h("Registration")
+h("9. Registration and trial access")
 p("The product has its own registration namespace, n0jcg-noaa-weather-radio. Open the hamburger menu to activate the product. Enter the N0JCG license S/N with prefix N0JCG-NWR- and the registered email address, then select Activate license. The application displays the product ID, license prefix, installation ID, and activation result there. Activation validates a signed, product-scoped lease for this installation and stores the credentials and lease under the private runtime license directory. While unregistered, the main dashboard continues to show the five-minute trial card and timer; both are removed after successful activation.")
-doc.add_picture(str(SCREENSHOTS / "registration-menu-v0.1.3.png"), width=Inches(6.7))
+doc.add_picture(str(SCREENSHOTS / "registration-menu-live-v0.1.4.png"), width=Inches(6.7))
 doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
 caption = doc.add_paragraph("Figure 2. Registration details shown in the operator menu; enter the product license S/N and registered email before activation."); caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
-h("Troubleshooting")
+h("10. Troubleshooting")
 bullets(["No device: check rtl_test -d 00000162, USB power, permissions, and competing SDR owners.", "No candidates: check antenna, gain, local NOAA coverage, and rtl_power installation.", "Wrong winner: inspect all SNR values and reduce gain if the receiver is saturated.", "No SAME alert: validate with a live or recorded SAME fixture; browser state alone cannot prove decoder health.", "Shared receiver conflict: stop Air Traffic Center VHF audio before starting a live scan here."])
-h("Release boundary")
-p("v0.1.3 includes software tests, deterministic simulation, compact operator UI, direct channel tuning, scheduled browser WAV audio, product-scoped registration tools, conditional trial state, FFT scoring, NFM process control, SAME parsing, registration state, installer, package tooling, updated registration documentation, and this guide. Live USB, RF audio, antenna coverage, and end-to-end SAME acceptance remain target-hardware gates.")
+h("11. Release boundary")
+p("v0.1.4 includes software tests, deterministic simulation, compact operator UI, direct channel tuning, scheduled browser WAV audio, product-scoped registration tools, conditional trial state, FFT scoring, NFM process control, SAME parsing, registration state, installer, package tooling, updated registration documentation, current live screenshots, and this guide. Live USB, RF audio, antenna coverage, and end-to-end SAME acceptance remain target-hardware gates.")
 doc.save(DOCX)
 print(DOCX)

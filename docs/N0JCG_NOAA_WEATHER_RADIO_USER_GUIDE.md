@@ -1,6 +1,17 @@
 # N0JCG NOAA Weather Radio
 
-## Operator user guide v0.1.3
+| Metadata | Value |
+|---|---|
+| Product | N0JCG NOAA Weather Radio |
+| Product ID | n0jcg-noaa-weather-radio |
+| Document | Operator user guide |
+| Version | 0.1.4 |
+| Status | Preview |
+| Receiver | RTL-SDR serial `00000162` |
+| Audience | Operators and installers |
+| Owner | N0JCG |
+
+## Operator user guide v0.1.4
 
 N0JCG NOAA Weather Radio is a receive-only Raspberry Pi appliance. It uses one
 RTL-SDR identified by EEPROM serial `00000162`, surveys the seven NOAA Weather
@@ -119,7 +130,7 @@ removed after successful activation.
 
 ## Support boundary and release evidence
 
-The v0.1.3 release includes software tests, simulation mode, static UI checks,
+The v0.1.4 release includes software tests, simulation mode, static UI checks,
 the compact operator dashboard, direct channel tuning, scheduled browser WAV
 audio, and package construction. Hardware-dependent acceptance remains pending until
 the specified RTL-SDR is connected on the target Pi and a live FFT scan, NFM
