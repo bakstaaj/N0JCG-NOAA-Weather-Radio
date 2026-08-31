@@ -47,6 +47,8 @@ for item in ("1. What N0JCG NOAA Weather Radio does", "2. Safety and operating b
     doc.add_paragraph(item)
 doc.add_page_break()
 h("1. What N0JCG NOAA Weather Radio does")
+p("N0JCG NOAA Weather Radio is a receive-only Raspberry Pi appliance for all seven US NOAA Weather Radio channels. It uses FFT scoring to select the strongest candidate, provides narrow-FM browser audio, and supports operator-configurable SAME alert filters.")
+h("2. Safety and operating boundary")
 p("This product has no transmit path. It is not an emergency alert replacement; keep an official weather receiver or other warning source available. A green application status proves software state, not RF coverage or the correctness of a warning.")
 h("3. Hardware and identity")
 p("Use a Raspberry Pi with current 64-bit Raspberry Pi OS, stable power, network access, an RTL-SDR with EEPROM serial 00000162, and a suitable VHF antenna. USB enumeration is not serial ownership; the application passes the required serial to RTL tools and does not use a temporary USB index.")

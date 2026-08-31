@@ -12,4 +12,4 @@ Preview documentation and release refresh.
 
 ## Validation boundary
 
-The guide build, software tests, package construction, and live screenshot capture completed. DOCX raster rendering was not available because LibreOffice is not installed on the authoring workstation. Live RF coverage, intelligible audio, and end-to-end SAME acceptance remain target-hardware validation activities.
+The guide build, software tests, package construction, live screenshot capture, and LibreOffice DOCX raster rendering completed. The rendered five-page guide was inspected for page layout, current screenshots, headings, and metadata. Live RF coverage, intelligible audio, and end-to-end SAME acceptance remain target-hardware validation activities.
