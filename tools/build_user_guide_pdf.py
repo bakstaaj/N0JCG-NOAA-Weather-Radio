@@ -3,10 +3,11 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer, Image
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "docs" / "publications" / "N0JCG_NOAA_Weather_Radio_User_Guide_v0.1.2.pdf"
+OUT = ROOT / "docs" / "publications" / "N0JCG_NOAA_Weather_Radio_User_Guide_v0.1.3.pdf"
+SCREENSHOTS = ROOT / "docs" / "assets"
 styles = getSampleStyleSheet()
 styles.add(ParagraphStyle(name="N0Title", parent=styles["Title"], fontSize=26, textColor=colors.HexColor("#0A1F44"), spaceAfter=8))
 styles.add(ParagraphStyle(name="N0H1", parent=styles["Heading1"], fontSize=16, textColor=colors.HexColor("#0A1F44"), spaceBefore=12, spaceAfter=5))
@@ -19,11 +20,14 @@ def footer(canvas, doc):
     canvas.saveState()
     canvas.setFont("Helvetica", 8)
     canvas.setFillColor(colors.HexColor("#66788A"))
-    canvas.drawString(.7 * inch, .35 * inch, "N0JCG NOAA Weather Radio | v0.1.2 | Receive-only by design")
+    canvas.drawString(.7 * inch, .35 * inch, "N0JCG NOAA Weather Radio | v0.1.3 | Receive-only by design")
     canvas.drawRightString(7.8 * inch, .35 * inch, f"Page {doc.page}")
     canvas.restoreState()
 
-story = [P("N0JCG NOAA Weather Radio", "N0Title"), P("Operator User Guide | Preview release v0.1.2"), P("A focused receive-only Raspberry Pi appliance for all seven US NOAA Weather Radio channels, FFT-directed strongest-channel selection, NFM audio, and operator-configurable SAME alert filters.")]
+story = [P("N0JCG NOAA Weather Radio", "N0Title"), P("Operator User Guide | Preview release v0.1.3"), P("A focused receive-only Raspberry Pi appliance for all seven US NOAA Weather Radio channels, FFT-directed strongest-channel selection, NFM audio, and operator-configurable SAME alert filters.")]
+dashboard = Image(str(SCREENSHOTS / "dashboard-v0.1.3.png"), width=6.7 * inch, height=6.7 * inch * 1102 / 2560)
+dashboard.hAlign = "CENTER"
+story.extend([dashboard, P("Figure 1. Compact dashboard with receiver identity, trial status, Start/Stop control, and FFT-ranked NOAA candidates.")])
 
 sections = {
     "Safety and operating boundary": ["This product has no transmit path. It is not an emergency alert replacement; keep an official weather receiver or other warning source available. A green application status proves software state, not RF coverage or the correctness of a warning."],
@@ -34,11 +38,15 @@ sections = {
     "SAME alerts": ["Enter county FIPS codes and SAME event codes such as TOR or SVR, separated by commas. Empty fields accept all values. The test parser exercises syntax only; it does not prove that an over-the-air warning was received.", "Record the raw header and UTC receipt time for live validation. Verify the tuned channel and intelligible 1050 Hz alert sequence."],
     "Registration": ["The product has its own registration namespace, n0jcg-noaa-weather-radio. Open the hamburger menu to activate the product. Enter the N0JCG license S/N with prefix N0JCG-NWR- and the registered email address, then select Activate license. The application displays the product ID, license prefix, installation ID, and activation result there. Activation validates a signed, product-scoped lease for this installation and stores the credentials and lease under the private runtime license directory. While unregistered, the main dashboard continues to show the five-minute trial card and timer; both are removed after successful activation."],
     "Troubleshooting": ["No device: check rtl_test -d 00000162, USB power, permissions, and competing SDR owners.<br/>No candidates: check antenna, gain, local NOAA coverage, and rtl_power installation.<br/>Wrong winner: inspect all SNR values and reduce gain if the receiver is saturated.<br/>No SAME alert: validate with a live or recorded SAME fixture.<br/>Shared receiver conflict: stop Air Traffic Center VHF audio before starting a live scan here."],
-    "Release boundary": ["v0.1.2 includes software tests, deterministic simulation, compact operator UI, direct channel tuning, scheduled browser WAV audio, product-scoped registration tools, conditional trial state, FFT scoring, NFM process control, SAME parsing, registration state, installer, package tooling, and this guide. Live USB, RF audio, antenna coverage, and end-to-end SAME acceptance remain target-hardware gates."]
+    "Release boundary": ["v0.1.3 includes software tests, deterministic simulation, compact operator UI, direct channel tuning, scheduled browser WAV audio, product-scoped registration tools, conditional trial state, FFT scoring, NFM process control, SAME parsing, registration state, installer, package tooling, updated registration documentation, and this guide. Live USB, RF audio, antenna coverage, and end-to-end SAME acceptance remain target-hardware gates."]
 }
 for heading, paragraphs in sections.items():
     story.append(P(heading, "N0H1"))
     story.extend(P(item) for item in paragraphs)
+    if heading == "Registration":
+        registration = Image(str(SCREENSHOTS / "registration-menu-v0.1.3.png"), width=6.7 * inch, height=6.7 * inch * 835 / 1128)
+        registration.hAlign = "CENTER"
+        story.extend([registration, P("Figure 2. Registration details shown in the operator menu; enter the product license S/N and registered email before activation.")])
 
 story.append(P("NOAA channel plan", "N0H1"))
 rows = [[P("<b>Channel</b>"), P("<b>Frequency</b>")]]
