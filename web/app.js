@@ -7,10 +7,18 @@ let trialRemainingSeconds = null;
 let trialPaused = false;
 function renderRegistration(registration) {
   if (!registration) return;
+  $("registrationProduct").textContent = registration.product_name || "N0JCG NOAA Weather Radio";
+  $("registrationProductId").textContent = registration.product_id || "n0jcg-noaa-weather-radio";
+  $("registrationLicensePrefix").textContent = registration.license_prefix || "N0JCG-NWR-";
+  $("registrationInstallationId").textContent = registration.installation_id || "—";
   trialRemainingSeconds = registration.trial_remaining_seconds ?? null;
   trialPaused = Boolean(registration.trial_paused);
+  $("registrationCard").hidden = Boolean(registration.registered);
   $("registration").textContent = trialPaused ? "TRIAL PAUSED" : registration.registered ? "REGISTERED" : `TRIAL ${formatTrialTime(trialRemainingSeconds)}`;
   $("installation").textContent = trialPaused ? "RESTART REQUIRED" : registration.installation_id;
+  $("registrationMode").textContent = registration.registered ? "REGISTERED" : "UNREGISTERED";
+  $("activateLicenseBtn").disabled = Boolean(registration.registered);
+  $("registrationStatusText").textContent = registration.registered ? `Registered license ${registration.license_suffix || ""}` : registration.validation_error ? `Activation status: ${registration.validation_error}` : "Enter the N0JCG license S/N and registered email.";
 }
 function formatTrialTime(seconds) {
   if (seconds == null) return "";
@@ -38,7 +46,7 @@ async function refresh() {
   try {
     const state = await api("/api/status");
     render(state);
-    renderRegistration(state.registration);
+  renderRegistration(state.registration);
     $("status").textContent = "READY";
     $("status").className = "pill ok";
   } catch (error) {
@@ -107,6 +115,8 @@ $("sameLocationSearch").addEventListener("input", (event) => renderSameLocations
 renderSameEventLinks();
 loadSameLocations();
 $("saveFilter").onclick = async () => { const status = $("sameFilterStatus"); const button = $("saveFilter"); button.disabled = true; status.textContent = "Saving…"; try { await api("/api/same/filter", {method:"POST", body:JSON.stringify({counties:$("counties").value.split(",").map(v=>v.trim()).filter(Boolean), events:$("events").value.split(",").map(v=>v.trim()).filter(Boolean)})}); status.textContent = "SAME settings updated."; } catch (error) { status.textContent = error.message; } finally { button.disabled = false; } };
+async function activateLicense() { const licenseSerial = String($("licenseSerialInput").value || "").trim(); const email = String($("licenseEmailInput").value || "").trim(); if (!licenseSerial || !email) { $("registrationStatusText").textContent = "Enter the license S/N and registered email address."; return; } $("activateLicenseBtn").disabled = true; $("registrationStatusText").textContent = "Contacting N0JCG licensing service…"; try { const result = await api("/api/registration/activate", {method:"POST", body:JSON.stringify({license_serial: licenseSerial, email})}); render(result); $("licenseSerialInput").value = ""; $("registrationStatusText").textContent = "License activated for this installation."; } catch (error) { $("registrationStatusText").textContent = `Activation failed: ${error.message}`; $("activateLicenseBtn").disabled = false; } }
+$("activateLicenseBtn").onclick = () => activateLicense().catch((error) => { $("registrationStatusText").textContent = error.message; $("activateLicenseBtn").disabled = false; });
 setInterval(() => {
   if (trialRemainingSeconds != null && !trialPaused) {
     trialRemainingSeconds = Math.max(0, trialRemainingSeconds - 1);

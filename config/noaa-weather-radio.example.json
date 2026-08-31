@@ -13,6 +13,7 @@
   },
   "registration": {
     "product_id": "n0jcg-noaa-weather-radio",
-    "activation_url": "https://register.n0jcg.com/api/v1/activate"
+    "license_prefix": "N0JCG-NWR-",
+    "activation_url": "https://www.n0jcg.com/api/v1/licenses/validate"
   }
 }

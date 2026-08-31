@@ -9,7 +9,7 @@ from docx.oxml.ns import qn
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "publications"
 OUT.mkdir(parents=True, exist_ok=True)
-DOCX = OUT / "N0JCG_NOAA_Weather_Radio_User_Guide_v0.1.1.docx"
+DOCX = OUT / "N0JCG_NOAA_Weather_Radio_User_Guide_v0.1.2.docx"
 
 def shade(cell, fill):
     props = cell._tc.get_or_add_tcPr(); element = OxmlElement("w:shd"); element.set(qn("w:fill"), fill); props.append(element)
@@ -21,10 +21,10 @@ styles["Normal"].font.name = "Arial"; styles["Normal"].font.size = Pt(10); style
 for name, size, color in (("Title",30,"0A1F44"),("Heading 1",20,"0A1F44"),("Heading 2",14,"1565C0"),("Heading 3",11,"1565C0")):
     style = styles[name]; style.font.name = "Arial"; style.font.size = Pt(size); style.font.bold = True; style.font.color.rgb = RGBColor.from_string(color)
 header = section.header.paragraphs[0]; header.text = "N0JCG  /  OPEN RADIO PLATFORM"; header.runs[0].font.color.rgb = RGBColor(21,101,192); header.runs[0].font.bold = True
-footer = section.footer.paragraphs[0]; footer.alignment = WD_ALIGN_PARAGRAPH.CENTER; footer.add_run("N0JCG NOAA Weather Radio  |  v0.1.1  |  Receive-only by design")
+footer = section.footer.paragraphs[0]; footer.alignment = WD_ALIGN_PARAGRAPH.CENTER; footer.add_run("N0JCG NOAA Weather Radio  |  v0.1.2  |  Receive-only by design")
 
 title = doc.add_paragraph(style="Title"); title.add_run("N0JCG NOAA Weather Radio")
-sub = doc.add_paragraph(); sub.add_run("Operator User Guide  |  Preview release v0.1.1").bold = True
+sub = doc.add_paragraph(); sub.add_run("Operator User Guide  |  Preview release v0.1.2").bold = True
 doc.add_paragraph("A focused receive-only Raspberry Pi appliance for all seven US NOAA Weather Radio channels, FFT-directed strongest-channel selection, NFM audio, and operator-configurable SAME alert filters.")
 
 def h(text, level=1): doc.add_heading(text, level=level)
@@ -55,10 +55,10 @@ h("SAME alerts")
 p("Enter county FIPS codes and SAME event codes such as TOR or SVR, separated by commas. Empty fields accept all values. The test parser exercises syntax only; it does not prove that an over-the-air warning was received.")
 bullets(["Record the raw header and UTC receipt time for live validation.", "Verify the tuned channel and intelligible 1050 Hz alert sequence.", "Treat a parsed test header as a software check, never as an operational warning."])
 h("Registration")
-p("The product has its own registration namespace, n0jcg-noaa-weather-radio. The local registration endpoint reports a unique installation identifier and trial or registered mode. Activation tokens are product-scoped and stored in local runtime state.")
+p("The product has its own registration namespace, n0jcg-noaa-weather-radio. Open the hamburger menu to activate the product. Enter the N0JCG license S/N with prefix N0JCG-NWR- and the registered email address, then select Activate license. The application displays the product ID, license prefix, installation ID, and activation result there. Activation validates a signed, product-scoped lease for this installation and stores the credentials and lease under the private runtime license directory. While unregistered, the main dashboard continues to show the five-minute trial card and timer; both are removed after successful activation.")
 h("Troubleshooting")
 bullets(["No device: check rtl_test -d 00000162, USB power, permissions, and competing SDR owners.", "No candidates: check antenna, gain, local NOAA coverage, and rtl_power installation.", "Wrong winner: inspect all SNR values and reduce gain if the receiver is saturated.", "No SAME alert: validate with a live or recorded SAME fixture; browser state alone cannot prove decoder health.", "Shared receiver conflict: stop Air Traffic Center VHF audio before starting a live scan here."])
 h("Release boundary")
-p("v0.1.1 includes software tests, deterministic simulation, compact operator UI, direct channel tuning, scheduled browser WAV audio, FFT scoring, NFM process control, SAME parsing, registration state, installer, package tooling, and this guide. Live USB, RF audio, antenna coverage, and end-to-end SAME acceptance remain target-hardware gates.")
+p("v0.1.2 includes software tests, deterministic simulation, compact operator UI, direct channel tuning, scheduled browser WAV audio, product-scoped registration tools, conditional trial state, FFT scoring, NFM process control, SAME parsing, registration state, installer, package tooling, and this guide. Live USB, RF audio, antenna coverage, and end-to-end SAME acceptance remain target-hardware gates.")
 doc.save(DOCX)
 print(DOCX)

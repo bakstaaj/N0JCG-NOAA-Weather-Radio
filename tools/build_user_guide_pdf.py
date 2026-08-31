@@ -6,7 +6,7 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "docs" / "publications" / "N0JCG_NOAA_Weather_Radio_User_Guide_v0.1.1.pdf"
+OUT = ROOT / "docs" / "publications" / "N0JCG_NOAA_Weather_Radio_User_Guide_v0.1.2.pdf"
 styles = getSampleStyleSheet()
 styles.add(ParagraphStyle(name="N0Title", parent=styles["Title"], fontSize=26, textColor=colors.HexColor("#0A1F44"), spaceAfter=8))
 styles.add(ParagraphStyle(name="N0H1", parent=styles["Heading1"], fontSize=16, textColor=colors.HexColor("#0A1F44"), spaceBefore=12, spaceAfter=5))
@@ -19,11 +19,11 @@ def footer(canvas, doc):
     canvas.saveState()
     canvas.setFont("Helvetica", 8)
     canvas.setFillColor(colors.HexColor("#66788A"))
-    canvas.drawString(.7 * inch, .35 * inch, "N0JCG NOAA Weather Radio | v0.1.1 | Receive-only by design")
+    canvas.drawString(.7 * inch, .35 * inch, "N0JCG NOAA Weather Radio | v0.1.2 | Receive-only by design")
     canvas.drawRightString(7.8 * inch, .35 * inch, f"Page {doc.page}")
     canvas.restoreState()
 
-story = [P("N0JCG NOAA Weather Radio", "N0Title"), P("Operator User Guide | Preview release v0.1.1"), P("A focused receive-only Raspberry Pi appliance for all seven US NOAA Weather Radio channels, FFT-directed strongest-channel selection, NFM audio, and operator-configurable SAME alert filters.")]
+story = [P("N0JCG NOAA Weather Radio", "N0Title"), P("Operator User Guide | Preview release v0.1.2"), P("A focused receive-only Raspberry Pi appliance for all seven US NOAA Weather Radio channels, FFT-directed strongest-channel selection, NFM audio, and operator-configurable SAME alert filters.")]
 
 sections = {
     "Safety and operating boundary": ["This product has no transmit path. It is not an emergency alert replacement; keep an official weather receiver or other warning source available. A green application status proves software state, not RF coverage or the correctness of a warning."],
@@ -32,9 +32,9 @@ sections = {
     "First operation": ["1. Confirm the receiver serial card shows 00000162.<br/>2. Press Start. The application surveys 162.395-162.555 MHz and starts browser audio on the strongest valid candidate.<br/>3. Review candidate cards; click any card to tune directly to that NOAA channel.<br/>4. Press Stop—the same button changes from Start to Stop—before disconnecting the receiver or changing USB hardware.", "Simulation mode selects a deterministic test winner for software validation and is not live RF proof."],
     "FFT scan and audio": ["The scanner scores power around each canonical channel from one wide survey. The highest SNR candidate is selected, then rtl_fm is started in narrow-FM mode at 48 kHz. The server supplies short 24 kHz mono WAV segments to the browser for scheduled playback. A high peak can still be interference; verify intelligible NOAA audio."],
     "SAME alerts": ["Enter county FIPS codes and SAME event codes such as TOR or SVR, separated by commas. Empty fields accept all values. The test parser exercises syntax only; it does not prove that an over-the-air warning was received.", "Record the raw header and UTC receipt time for live validation. Verify the tuned channel and intelligible 1050 Hz alert sequence."],
-    "Registration": ["The product has its own registration namespace, n0jcg-noaa-weather-radio. The local registration endpoint reports a unique installation identifier and trial or registered mode. Activation tokens are product-scoped and stored in local runtime state."],
+    "Registration": ["The product has its own registration namespace, n0jcg-noaa-weather-radio. Open the hamburger menu to activate the product. Enter the N0JCG license S/N with prefix N0JCG-NWR- and the registered email address, then select Activate license. The application displays the product ID, license prefix, installation ID, and activation result there. Activation validates a signed, product-scoped lease for this installation and stores the credentials and lease under the private runtime license directory. While unregistered, the main dashboard continues to show the five-minute trial card and timer; both are removed after successful activation."],
     "Troubleshooting": ["No device: check rtl_test -d 00000162, USB power, permissions, and competing SDR owners.<br/>No candidates: check antenna, gain, local NOAA coverage, and rtl_power installation.<br/>Wrong winner: inspect all SNR values and reduce gain if the receiver is saturated.<br/>No SAME alert: validate with a live or recorded SAME fixture.<br/>Shared receiver conflict: stop Air Traffic Center VHF audio before starting a live scan here."],
-    "Release boundary": ["v0.1.1 includes software tests, deterministic simulation, compact operator UI, direct channel tuning, scheduled browser WAV audio, FFT scoring, NFM process control, SAME parsing, registration state, installer, package tooling, and this guide. Live USB, RF audio, antenna coverage, and end-to-end SAME acceptance remain target-hardware gates."]
+    "Release boundary": ["v0.1.2 includes software tests, deterministic simulation, compact operator UI, direct channel tuning, scheduled browser WAV audio, product-scoped registration tools, conditional trial state, FFT scoring, NFM process control, SAME parsing, registration state, installer, package tooling, and this guide. Live USB, RF audio, antenna coverage, and end-to-end SAME acceptance remain target-hardware gates."]
 }
 for heading, paragraphs in sections.items():
     story.append(P(heading, "N0H1"))

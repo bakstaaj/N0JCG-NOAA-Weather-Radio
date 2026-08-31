@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from . import PRODUCT_NAME, REQUIRED_RTL_SERIAL
 from .channels import NOAA_CHANNELS, channel_for_frequency
 from .fft_scan import FftPoint, MIN_VALID_SNR_DB, score_channels, simulated_spectrum
-from .registration import registration_status
+from .registration import activate as activate_license, registration_status
 from .same import SameFilter, alert_matches, parse_same_header
 
 
@@ -85,7 +85,6 @@ class RadioState:
         with self.lock:
             self._restart_trial_locked()
             return self.snapshot()
-
     def registration(self) -> dict[str, object]:
         status = registration_status(RUNTIME / "registration.json")
         if status.get("registered"):
@@ -273,9 +272,12 @@ class Handler(BaseHTTPRequestHandler):
             STATE.same_filter = SameFilter(set(payload.get("counties", [])), set(payload.get("events", [])), str(payload.get("min_priority", "all"))); RUNTIME.mkdir(parents=True, exist_ok=True); STATE.same_filter_path.write_text(json.dumps({"counties": sorted(STATE.same_filter.counties), "events": sorted(STATE.same_filter.events), "min_priority": STATE.same_filter.min_priority}, indent=2) + "\n", encoding="utf-8"); self._json(STATE.snapshot()); return
         if path == "/api/same/test": self._json({"ok": True, "matched": STATE.ingest_same(str(payload.get("header", ""))) }); return
         if path == "/api/registration/activate":
-            token = str(payload.get("license_token", "")).strip()
-            if not token: self._json({"ok": False, "error": "license_token_required"}, 400); return
-            RUNTIME.mkdir(parents=True, exist_ok=True); state_path = RUNTIME / "registration.json"; saved = registration_status(state_path); saved.update({"license_token": token, "registered": True, "mode": "registered"}); state_path.write_text(json.dumps(saved, indent=2) + "\n", encoding="utf-8"); self._json(saved); return
+            try:
+                state_path = RUNTIME / "registration.json"
+                self._json(activate_license(state_path, str(payload.get("license_serial", "")), str(payload.get("email", ""))))
+            except Exception as error:
+                self._json({"ok": False, "error": str(error), "registration": STATE.registration()}, 400)
+            return
         self._json({"ok": False, "error": "not_found"}, 404)
 
     def _serve(self, relative: str) -> None:

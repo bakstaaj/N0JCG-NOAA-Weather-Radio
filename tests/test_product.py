@@ -5,6 +5,8 @@ from pathlib import Path
 from n0jcg_noaa_weather_radio.channels import NOAA_CHANNELS
 from n0jcg_noaa_weather_radio.fft_scan import FftPoint, MIN_VALID_SNR_DB, score_channels, simulated_spectrum
 from n0jcg_noaa_weather_radio.same import SameFilter, alert_matches, parse_same_header
+from n0jcg_noaa_weather_radio import LICENSE_PREFIX, PRODUCT_ID
+from n0jcg_noaa_weather_radio.registration import activate, registration_status
 from n0jcg_noaa_weather_radio.server import NOAA_AUDIO_GAIN_DB, NOAA_AUDIO_INPUT_RATE_HZ, NOAA_AUDIO_OUTPUT_RATE_HZ
 
 
@@ -41,14 +43,38 @@ class ProductTests(unittest.TestCase):
         self.assertIn('data-frequency', ui)
         self.assertIn('menuToggle', ui)
         self.assertIn('No valid NOAA carrier found; audio is not started.', ui)
-        self.assertIn('RESTART REQUIRED', ui)
         self.assertIn('TRIAL PAUSED', ui)
         self.assertIn('formatTrialTime', ui)
+        self.assertIn('trialRemainingSeconds', ui)
+        self.assertIn('id="registrationCard"', ui)
+        self.assertIn('licenseSerialInput', ui)
+        self.assertIn('registration/activate', ui)
+        self.assertIn('N0JCG-NWR-', ui)
         self.assertIn('/assets/N0JCG_Header_Dark_Approved.png', ui)
         self.assertIn('<h1>Weather Radio</h1>', ui)
         self.assertIn('N0JCG Weather Radio', ui)
         self.assertNotIn('N0JCG WEATHER RADIO', ui)
         self.assertIn('/api/trial/restart', ui + (root / 'src/n0jcg_noaa_weather_radio/server.py').read_text())
+
+    def test_registration_metadata(self):
+        with self.subTest("product constants"):
+            self.assertEqual(PRODUCT_ID, "n0jcg-noaa-weather-radio")
+            self.assertEqual(LICENSE_PREFIX, "N0JCG-NWR-")
+        with self.subTest("status payload"):
+            path = Path(self.id().replace(".", "_") + ".json")
+            try:
+                status = registration_status(path)
+                self.assertEqual(status["product_id"], PRODUCT_ID)
+                self.assertEqual(status["license_prefix"], LICENSE_PREFIX)
+                self.assertFalse(status["registered"])
+                self.assertEqual(status["mode"], "unregistered")
+            finally:
+                path.unlink(missing_ok=True)
+
+    def test_registration_rejects_wrong_product_prefix(self):
+        path = Path(self.id().replace(".", "_") + "_prefix.json")
+        with self.assertRaisesRegex(ValueError, "N0JCG-NWR-"):
+            activate(path, "N0JCG-ABS-AAAA-BBBB-CCCC-DDDD", "operator@example.com")
 
     def test_audio_profile_matches_validated_noaa_path(self):
         self.assertEqual((NOAA_AUDIO_INPUT_RATE_HZ, NOAA_AUDIO_OUTPUT_RATE_HZ), (240000, 24000))

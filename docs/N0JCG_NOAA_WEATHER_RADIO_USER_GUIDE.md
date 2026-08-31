@@ -1,6 +1,6 @@
 # N0JCG NOAA Weather Radio
 
-## Operator user guide v0.1.1
+## Operator user guide v0.1.2
 
 N0JCG NOAA Weather Radio is a receive-only Raspberry Pi appliance. It uses one
 RTL-SDR identified by EEPROM serial `00000162`, surveys the seven NOAA Weather
@@ -93,10 +93,14 @@ filter matched. Do not treat a parsed test header as an operational warning.
 ## Registration
 
 The product has its own registration namespace, `n0jcg-noaa-weather-radio`.
-The local registration page reports a unique installation identifier and trial
-or registered mode. Activation tokens are entered through the product API and
-stored only in the local runtime state. A future hosted registration service
-must validate signed product-scoped tokens before a production release.
+Open the hamburger menu to activate the product. Enter the N0JCG license S/N
+with prefix `N0JCG-NWR-` and the registered email address, then select
+**Activate license**. The application displays the product ID, license prefix,
+installation ID, and activation result there. Activation validates a signed,
+product-scoped lease for this installation and stores the credentials and lease
+under the private runtime license directory. While unregistered, the main
+dashboard continues to show the five-minute trial card and timer; both are
+removed after successful activation.
 
 ## Troubleshooting
 
@@ -115,7 +119,7 @@ must validate signed product-scoped tokens before a production release.
 
 ## Support boundary and release evidence
 
-The v0.1.1 release includes software tests, simulation mode, static UI checks,
+The v0.1.2 release includes software tests, simulation mode, static UI checks,
 the compact operator dashboard, direct channel tuning, scheduled browser WAV
 audio, and package construction. Hardware-dependent acceptance remains pending until
 the specified RTL-SDR is connected on the target Pi and a live FFT scan, NFM
