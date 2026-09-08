@@ -9,7 +9,7 @@ from docx.oxml.ns import qn
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "publications"
 OUT.mkdir(parents=True, exist_ok=True)
-DOCX = OUT / "N0JCG_NOAA_Weather_Radio_User_Guide_v0.1.4.docx"
+DOCX = OUT / "N0JCG_NOAA_Weather_Radio_User_Guide_v1.0.0.docx"
 SCREENSHOTS = ROOT / "docs" / "assets"
 
 def shade(cell, fill):
@@ -22,10 +22,10 @@ styles["Normal"].font.name = "Arial"; styles["Normal"].font.size = Pt(10); style
 for name, size, color in (("Title",30,"0A1F44"),("Heading 1",20,"0A1F44"),("Heading 2",14,"1565C0"),("Heading 3",11,"1565C0")):
     style = styles[name]; style.font.name = "Arial"; style.font.size = Pt(size); style.font.bold = True; style.font.color.rgb = RGBColor.from_string(color)
 header = section.header.paragraphs[0]; header.text = "N0JCG  /  OPEN RADIO PLATFORM"; header.runs[0].font.color.rgb = RGBColor(21,101,192); header.runs[0].font.bold = True
-footer = section.footer.paragraphs[0]; footer.alignment = WD_ALIGN_PARAGRAPH.CENTER; footer.add_run("N0JCG NOAA Weather Radio  |  v0.1.4  |  Receive-only by design")
+footer = section.footer.paragraphs[0]; footer.alignment = WD_ALIGN_PARAGRAPH.CENTER; footer.add_run("N0JCG NOAA Weather Radio  |  v1.0.0  |  Receive-only by design")
 
 title = doc.add_paragraph(style="Title"); title.add_run("N0JCG NOAA Weather Radio")
-sub = doc.add_paragraph(); sub.add_run("Operator User Guide  |  Preview release v0.1.4").bold = True
+sub = doc.add_paragraph(); sub.add_run("Operator User Guide  |  Product release v1.0.0").bold = True
 doc.add_paragraph("A focused receive-only Raspberry Pi appliance for all seven US NOAA Weather Radio channels, FFT-directed strongest-channel selection, NFM audio, and operator-configurable SAME alert filters.")
 doc.add_picture(str(SCREENSHOTS / "dashboard-live-v0.1.4.png"), width=Inches(6.7))
 doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -39,7 +39,7 @@ def steps(items):
     for item in items: doc.add_paragraph(item, style="List Number")
 
 meta = doc.add_table(rows=0, cols=2); meta.style = "Table Grid"
-for key, value in (("Product", "N0JCG NOAA Weather Radio"), ("Product ID", "n0jcg-noaa-weather-radio"), ("Document", "Operator user guide"), ("Version", "0.1.4"), ("Status", "Preview"), ("Receiver", "RTL-SDR serial 00000162"), ("Audience", "Operators and installers"), ("Owner", "N0JCG")):
+for key, value in (("Product", "N0JCG NOAA Weather Radio"), ("Product ID", "n0jcg-noaa-weather-radio"), ("Document", "Operator user guide"), ("Version", "1.0.0"), ("Status", "Product release"), ("Receiver", "RTL-SDR serial 00000162"), ("Audience", "Operators and installers"), ("Owner", "N0JCG")):
     cells = meta.add_row().cells; cells[0].text = key; cells[1].text = value; shade(cells[0], "EAF4FB")
 doc.add_page_break()
 h("Contents")
@@ -76,6 +76,6 @@ caption = doc.add_paragraph("Figure 2. Registration details shown in the operato
 h("10. Troubleshooting")
 bullets(["No device: check rtl_test -d 00000162, USB power, permissions, and competing SDR owners.", "No candidates: check antenna, gain, local NOAA coverage, and rtl_power installation.", "Wrong winner: inspect all SNR values and reduce gain if the receiver is saturated.", "No SAME alert: validate with a live or recorded SAME fixture; browser state alone cannot prove decoder health.", "Shared receiver conflict: stop Air Traffic Center VHF audio before starting a live scan here."])
 h("11. Release boundary")
-p("v0.1.4 includes software tests, deterministic simulation, compact operator UI, direct channel tuning, scheduled browser WAV audio, product-scoped registration tools, conditional trial state, FFT scoring, NFM process control, SAME parsing, registration state, installer, package tooling, updated registration documentation, current live screenshots, and this guide. Live USB, RF audio, antenna coverage, and end-to-end SAME acceptance remain target-hardware gates.")
+p("v1.0.0 includes software tests, deterministic simulation, compact operator UI, direct channel tuning, scheduled browser WAV audio, product-scoped registration tools, conditional trial state, FFT scoring, NFM process control, SAME parsing, registration state, installer, package tooling, updated registration documentation, current live screenshots, and this guide. Live USB, RF audio, antenna coverage, and end-to-end SAME acceptance remain target-hardware gates.")
 doc.save(DOCX)
 print(DOCX)

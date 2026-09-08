@@ -52,7 +52,7 @@ class ProductTests(unittest.TestCase):
         self.assertIn('N0JCG-NWR-', ui)
         self.assertIn('/assets/N0JCG_Header_Dark_Approved.png', ui)
         self.assertIn('<h1>Weather Radio</h1>', ui)
-        self.assertIn('N0JCG Weather Radio', ui)
+        self.assertIn('N0JCG NOAA Weather Radio', ui)
         self.assertNotIn('N0JCG WEATHER RADIO', ui)
         self.assertIn('/api/trial/restart', ui + (root / 'src/n0jcg_noaa_weather_radio/server.py').read_text())
 
