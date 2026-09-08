@@ -213,6 +213,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlparse(self.path).path
+        if path == "/VERSION":
+            body = (ROOT / "VERSION").read_text(encoding="utf-8").strip() + "\n"
+            encoded = body.encode("utf-8")
+            self.send_response(200); self.send_header("Content-Type", "text/plain; charset=utf-8"); self.send_header("Cache-Control", "no-store"); self.send_header("Content-Length", str(len(encoded))); self.end_headers(); self.wfile.write(encoded); return
         if path == "/api/status": self._json(STATE.snapshot()); return
         if path == "/api/registration": self._json(STATE.registration()); return
         if path == "/api/channels": self._json({"channels": [channel.__dict__ for channel in NOAA_CHANNELS]}); return

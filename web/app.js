@@ -1,5 +1,12 @@
 const $ = (id) => document.getElementById(id);
 const fmt = (hz) => `${(hz / 1e6).toFixed(3)} MHz`;
+fetch("/VERSION", {cache: "no-store"})
+  .then((response) => (response.ok ? response.text() : ""))
+  .then((version) => {
+    version = version.trim();
+    if (version) document.querySelectorAll("[data-release-version]").forEach((element) => { element.textContent = `v${version}`; });
+  })
+  .catch(() => {});
 let audioAbort = null;
 let audioContext = null;
 let audioNextStart = 0;
